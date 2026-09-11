@@ -1,4 +1,4 @@
-package Asset_Control;
+package com.assetcontrol;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

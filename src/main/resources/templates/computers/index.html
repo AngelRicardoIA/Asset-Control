@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/document-head :: head('Equipos de cómputo | Asset-Control')}"></head>
+<body>
+<header th:replace="~{fragments/app-header :: header}"></header>
+
+<main class="computers-page">
+    <a class="back-link" th:href="@{/}">Inicio</a>
+
+    <section class="page-heading">
+        <div>
+            <p class="eyebrow">Inventario</p>
+            <h1>Equipos de cómputo</h1>
+            <p>Consulta el estado, historial y asignación de cada activo.</p>
+        </div>
+
+        <button class="primary-button" type="button">Nuevo equipo</button>
+    </section>
+
+    <section class="filter-panel">
+        <label class="search-field">
+            <span>Buscar equipo</span>
+            <input type="search" placeholder="Asset, hostname, serie o usuario">
+        </label>
+
+        <label class="filter-field">
+            <span>Estado</span>
+            <select>
+                <option>Todos los estados</option>
+                <option>Disponible</option>
+                <option>Asignado</option>
+                <option>Préstamo</option>
+                <option>Baja</option>
+            </select>
+        </label>
+
+        <label class="filter-field">
+            <span>Tipo</span>
+            <select>
+                <option>Todos los tipos</option>
+                <option>Laptop</option>
+                <option>Computadora de escritorio</option>
+            </select>
+        </label>
+    </section>
+
+    <section class="computer-list">
+        <article class="computer-row">
+            <div class="computer-row__identity">
+                <strong>MXJAM123</strong>
+                <span>Lenovo ThinkPad L14 Gen 2</span>
+            </div>
+            <span class="computer-row__host">MX-JAM-L014</span>
+            <span class="status status--available">Disponible</span>
+            <a class="detail-link" href="#">Ver detalle</a>
+        </article>
+
+        <article class="computer-row">
+            <div class="computer-row__identity">
+                <strong>MXJAM111</strong>
+                <span>Lenovo ThinkPad L14 Gen 2</span>
+            </div>
+            <span class="computer-row__host">MX-JAM-L021</span>
+            <span class="status status--assigned">Asignado a Laura López</span>
+            <a class="detail-link" href="#">Ver detalle</a>
+        </article>
+
+        <article class="computer-row">
+            <div class="computer-row__identity">
+                <strong>MXJAM087</strong>
+                <span>Dell OptiPlex 7010</span>
+            </div>
+            <span class="computer-row__host">MX-JAM-D008</span>
+            <span class="status status--loan">Préstamo hasta 18/09/2026</span>
+            <a class="detail-link" href="#">Ver detalle</a>
+        </article>
+    </section>
+</main>
+</body>
+</html>

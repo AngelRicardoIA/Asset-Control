@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/document-head :: head('Asset-Control')}"></head>
+<body>
+<header th:replace="~{fragments/app-header :: header}"></header>
+
+<main class="dashboard">
+    <section class="dashboard__intro">
+        <p class="eyebrow">Gestión de inventario</p>
+        <h1>Todos los activos TI en un solo lugar</h1>
+        <p class="dashboard__description">
+            Consulta, administra y da seguimiento a los equipos asignados desde un único espacio.
+        </p>
+    </section>
+
+    <section class="asset-grid" aria-label="Categorías de activos">
+        <a class="asset-card" th:href="@{/computers}">
+            <div class="asset-card__icon">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="4" y="5" width="16" height="11" rx="1"/>
+                    <path d="M2 19h20M9 19l1-3h4l1 3"/>
+                </svg>
+            </div>
+            <div class="asset-card__content">
+                <h2>Equipos de cómputo</h2>
+                <p>Laptops y computadoras de escritorio.</p>
+            </div>
+            <span class="asset-card__action">Abrir</span>
+        </a>
+
+        <article class="asset-card">
+            <div class="asset-card__icon">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="7" y="3" width="10" height="18" rx="2"/>
+                    <path d="M10 18h4"/>
+                </svg>
+            </div>
+            <div class="asset-card__content">
+                <h2>Teléfonos</h2>
+                <p>Dispositivos, IMEI y líneas telefónicas.</p>
+            </div>
+            <span class="asset-card__action">Próximamente</span>
+        </article>
+=
+        <article class="asset-card">
+            <div class="asset-card__icon">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="5" y="4" width="14" height="16" rx="2"/>
+                    <path d="M9 8h6M9 12h6M9 16h3"/>
+                </svg>
+            </div>
+            <div class="asset-card__content">
+                <h2>Accesorios</h2>
+                <p>Monitores, cargadores y periféricos.</p>
+            </div>
+            <span class="asset-card__action">Próximamente</span>
+        </article>
+    </section>
+</main>
+</body>
+</html>
