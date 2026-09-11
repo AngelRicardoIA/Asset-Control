@@ -1,0 +1,9 @@
+spring.datasource.url=${ASSETCONTROL_DATABASE_URL}
+spring.datasource.driver-class-name=${ASSETCONTROL_DATABASE_DRIVER}
+spring.datasource.username=${ASSETCONTROL_DATABASE_USERNAME}
+spring.datasource.password=${ASSETCONTROL_DATABASE_PASSWORD}
+
+spring.jpa.database-platform=${ASSETCONTROL_JPA_DIALECT}
+spring.jpa.hibernate.ddl-auto=validate
+spring.jpa.show-sql=false
+spring.jpa.open-in-view=false

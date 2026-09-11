@@ -31,3 +31,8 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### DB ###
+asset-control.db
+asset-control.db-shm
+asset-control.db-wal
