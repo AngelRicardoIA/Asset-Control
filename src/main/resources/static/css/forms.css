@@ -408,3 +408,38 @@
 .computer-users strong {
     color: var(--text-primary);
 }
+
+.maintenance-history {
+    margin-bottom: 1.5rem;
+}
+
+.maintenance-list {
+    display: grid;
+    gap: 0.8rem;
+}
+
+.maintenance-item {
+    align-items: start;
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    border-radius: 1rem;
+    box-shadow: var(--shadow-pressed);
+    padding: 1rem;
+}
+
+.maintenance-main {
+    display: grid;
+    gap: 0.35rem;
+}
+
+.maintenance-main span,
+.maintenance-main small {
+    color: var(--text-muted);
+}
+
+@media (max-width: 760px) {
+    .maintenance-item {
+        flex-direction: column;
+    }
+}

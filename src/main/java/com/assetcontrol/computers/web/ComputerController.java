@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import com.assetcontrol.maintenance.application.ComputerMaintenanceService;
 
 import java.util.List;
 
@@ -35,19 +36,22 @@ public class ComputerController {
     private final ComputerAssignmentService assignmentService;
     private final SiteService siteService;
     private final PersonService personService;
+    private final ComputerMaintenanceService maintenanceService;
 
     public ComputerController(
             ComputerService computerService,
             ComputerRegistrationService registrationService,
             ComputerAssignmentService assignmentService,
             SiteService siteService,
-            PersonService personService
+            PersonService personService,
+            ComputerMaintenanceService maintenanceService
     ) {
         this.computerService = computerService;
         this.registrationService = registrationService;
         this.assignmentService = assignmentService;
         this.siteService = siteService;
         this.personService = personService;
+        this.maintenanceService = maintenanceService;
     }
 
     @GetMapping
@@ -81,6 +85,11 @@ public class ComputerController {
         model.addAttribute(
                 "assignments",
                 assignmentService.findHistoryByComputerId(id)
+        );
+
+        model.addAttribute(
+                "maintenanceRecords",
+                maintenanceService.findByComputerId(id)
         );
 
         return "computers/detail";

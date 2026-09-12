@@ -16,12 +16,16 @@
             <a class="secondary-button" th:href="@{/computers}">Volver al inventario</a>
             <a
                     class="primary-button"
-                    th:href="@{/computers/{computerId}/assignments/new(computerId=${computer.id})}"
-            >Asignar equipo</a>
+                    th:href="@{/computers/{computerId}/maintenance/new(computerId=${computer.id})}"
+            >Registrar mantenimiento</a>
             <a
                     class="secondary-button"
                     th:href="@{/computers/{id}/edit(id=${computer.id})}"
             >Editar equipo</a>
+            <a
+                    class="primary-button"
+                    th:href="@{/computers/{computerId}/assignments/new(computerId=${computer.id})}"
+            >Asignar equipo</a>
         </div>
     </section>
 
@@ -117,6 +121,32 @@
                     </form>
 
                 </div>
+            </article>
+        </div>
+    </section>
+
+    <section class="form-panel maintenance-history">
+        <div class="section-heading">
+            <div>
+                <h2>Mantenimientos e historial técnico</h2>
+                <p>Reparaciones, cambios de componente y notas registradas.</p>
+            </div>
+        </div>
+
+        <div class="empty-state" th:if="${#lists.isEmpty(maintenanceRecords)}">
+            <h3>Sin registros técnicos</h3>
+            <p>Este equipo todavía no tiene mantenimientos registrados.</p>
+        </div>
+
+        <div class="maintenance-list" th:unless="${#lists.isEmpty(maintenanceRecords)}">
+            <article class="maintenance-item" th:each="record : ${maintenanceRecords}">
+                <div class="maintenance-main">
+                    <strong th:text="${record.recordType == T(com.assetcontrol.maintenance.domain.ComputerMaintenanceType).MAINTENANCE ? 'Mantenimiento' : record.recordType == T(com.assetcontrol.maintenance.domain.ComputerMaintenanceType).REPAIR ? 'Reparación' : record.recordType == T(com.assetcontrol.maintenance.domain.ComputerMaintenanceType).COMPONENT_REPLACEMENT ? 'Cambio de componente' : 'Nota técnica'}">Mantenimiento</strong>
+                    <span th:text="${record.description}">Descripción</span>
+                    <small th:text="${'Realizado por: ' + record.performedBy}">Realizado por</small>
+                </div>
+
+                <small th:text="${#temporals.format(record.performedAt, 'dd/MM/yyyy')}">Fecha</small>
             </article>
         </div>
     </section>
