@@ -27,3 +27,9 @@
     --color-shadow-light: #282c35;
     --color-shadow-dark: #121419;
 }
+
+.assignment-section {
+    border-top: 1px solid rgba(100, 100, 100, 0.15);
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+}

@@ -64,6 +64,7 @@ public class ComputerService {
                 normalizeRequired(command.brand()),
                 normalizeRequired(command.model()),
                 normalizeRequired(command.serialNumber()),
+                normalizeOptional(command.chargerSerialNumber()),
                 normalizeOptional(command.operatingSystem()),
                 command.status(),
                 site,
@@ -87,5 +88,59 @@ public class ComputerService {
         }
 
         return value.trim();
+    }
+
+    @Transactional
+    public Computer update(Long id, UpdateComputerCommand command) {
+        Computer computer = computerRepository.findById(id)
+                .orElseThrow(() -> new ComputerNotFoundException(id));
+
+        String asset = normalizeIdentifier(command.asset());
+        String host = normalizeIdentifier(command.host());
+
+        if (computerRepository.existsByAssetIgnoreCaseAndIdNot(asset, id)) {
+            throw new DuplicateComputerFieldException("asset");
+        }
+
+        if (computerRepository.existsByHostIgnoreCaseAndIdNot(host, id)) {
+            throw new DuplicateComputerFieldException("host");
+        }
+
+        Site site = siteService.resolve(command.siteId(), command.newSiteName());
+
+        applyStatusTransition(computer, command.status());
+        computer.updateDetails(
+                asset,
+                host,
+                command.type(),
+                normalizeRequired(command.brand()),
+                normalizeRequired(command.model()),
+                normalizeRequired(command.serialNumber()),
+                normalizeOptional(command.chargerSerialNumber()),
+                normalizeOptional(command.operatingSystem()),
+                site,
+                normalizeOptional(command.observations())
+        );
+
+        return computer;
+    }
+
+    private void applyStatusTransition(
+            Computer computer,
+            ComputerStatus requestedStatus
+    ) {
+        if (requestedStatus == computer.getStatus()) {
+            return;
+        }
+
+        if (requestedStatus == ComputerStatus.RETIRED) {
+            computer.changeStatus(ComputerStatus.RETIRED);
+            return;
+        }
+
+        throw new IllegalArgumentException(
+                "Asignado y Préstamo se controlan mediante movimientos. "
+                        + "Primero devuelve las asignaciones activas."
+        );
     }
 }

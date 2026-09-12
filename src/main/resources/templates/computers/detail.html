@@ -18,6 +18,10 @@
                     class="primary-button"
                     th:href="@{/computers/{computerId}/assignments/new(computerId=${computer.id})}"
             >Asignar equipo</a>
+            <a
+                    class="secondary-button"
+                    th:href="@{/computers/{id}/edit(id=${computer.id})}"
+            >Editar equipo</a>
         </div>
     </section>
 
@@ -48,6 +52,13 @@
         </article>
 
         <article class="detail-card">
+            <span>Serie del cargador</span>
+            <strong th:text="${computer.chargerSerialNumber ?: 'Sin registrar'}">
+                Sin registrar
+            </strong>
+        </article>
+
+        <article class="detail-card">
             <span>Sistema operativo</span>
             <strong th:text="${computer.operatingSystem ?: 'Sin registrar'}">Sistema operativo</strong>
         </article>
@@ -70,7 +81,7 @@
             <article class="assignment-item" th:each="assignment : ${assignments}">
                 <div class="assignment-person">
                     <strong th:text="${assignment.person.fullName}">Nombre completo</strong>
-                    <span th:text="${assignment.person.externalId + ' · ' + assignment.person.email}">ID · correo</span>
+                    <span th:text="${assignment.person.username + ' · ' + assignment.person.fullName}">ID · correo</span>
                     <small th:text="${'Desde: ' + #temporals.format(assignment.assignedAt, 'dd/MM/yyyy')}">Desde</small>
                 </div>
 
@@ -91,6 +102,20 @@
                             th:if="${assignment.assignmentType == T(com.assetcontrol.assignments.domain.AssignmentType).LOAN and assignment.active and !assignment.dueDate.isBefore(T(java.time.LocalDate).now())}"
                             th:text="${'Vence: ' + #temporals.format(assignment.dueDate, 'dd/MM/yyyy')}"
                     >Vence</small>
+
+                    <small
+                            th:if="${!assignment.active}"
+                            th:text="${'Devuelto: ' + #temporals.format(assignment.returnedAt, 'dd/MM/yyyy')}"
+                    >Devuelto</small>
+
+                    <form
+                            th:if="${assignment.active}"
+                            th:action="@{/computers/{computerId}/assignments/{assignmentId}/close(computerId=${computer.id}, assignmentId=${assignment.id})}"
+                            method="post"
+                    >
+                        <button class="secondary-button" type="submit">Devolver</button>
+                    </form>
+
                 </div>
             </article>
         </div>

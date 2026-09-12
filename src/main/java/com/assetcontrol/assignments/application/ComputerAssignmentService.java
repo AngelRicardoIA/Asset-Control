@@ -14,9 +14,14 @@ import com.assetcontrol.people.domain.Person;
 import com.assetcontrol.people.domain.PersonRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.assetcontrol.people.application.DuplicatePersonUsernameException;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
@@ -97,6 +102,7 @@ public class ComputerAssignmentService {
 
         return personService.create(new CreatePersonCommand(
                 command.newPersonExternalId(),
+                command.newPersonUsername(),
                 command.newPersonFullName(),
                 command.newPersonEmail()
         ));
@@ -127,8 +133,11 @@ public class ComputerAssignmentService {
     }
 
     private void synchronizeComputerStatus(Computer computer) {
-        Long computerId = computer.getId();
+        if (computer.getStatus() == ComputerStatus.RETIRED) {
+            return;
+        }
 
+        Long computerId = computer.getId();
         if (assignmentRepository.existsByComputer_IdAndAssignmentTypeAndReturnedAtIsNull(
                 computerId,
                 AssignmentType.LOAN
@@ -153,5 +162,37 @@ public class ComputerAssignmentService {
         String normalized = value.trim().replaceAll("\\s+", " ");
 
         return normalized.isBlank() ? null : normalized;
+    }
+
+    @Transactional
+    public void close(Long computerId, Long assignmentId) {
+        ComputerAssignment assignment = assignmentRepository.findDetailedById(assignmentId)
+                .orElseThrow(() -> new AssignmentNotFoundException(assignmentId));
+
+        if (!assignment.getComputer().getId().equals(computerId)) {
+            throw new IllegalArgumentException(
+                    "La asignación no pertenece al equipo indicado."
+            );
+        }
+
+        assignment.close(LocalDate.now());
+
+        synchronizeComputerStatus(assignment.getComputer());
+    }
+
+    public Map<Long, List<ComputerAssignment>> findActiveByComputerIds(
+            Collection<Long> computerIds
+    ) {
+        if (computerIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return assignmentRepository.findActiveByComputerIdsWithPerson(computerIds)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        assignment -> assignment.getComputer().getId(),
+                        LinkedHashMap::new,
+                        Collectors.toList()
+                ));
     }
 }

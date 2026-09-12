@@ -42,15 +42,6 @@
             </div>
 
             <div class="form-field">
-                <label for="status">Estado</label>
-                <select id="status" th:field="*{status}">
-                    <option value="">Selecciona una opción</option>
-                    <option th:each="status : ${computerStatuses}" th:value="${status}" th:text="${status == T(com.assetcontrol.computers.domain.ComputerStatus).AVAILABLE ? 'Disponible' : status == T(com.assetcontrol.computers.domain.ComputerStatus).ASSIGNED ? 'Asignado' : status == T(com.assetcontrol.computers.domain.ComputerStatus).LOANED ? 'Préstamo' : 'Baja'}"></option>
-                </select>
-                <small class="form-error" th:errors="*{status}"></small>
-            </div>
-
-            <div class="form-field">
                 <label for="brand">Marca</label>
                 <input id="brand" type="text" th:field="*{brand}" maxlength="100">
                 <small class="form-error" th:errors="*{brand}"></small>
@@ -66,6 +57,17 @@
                 <label for="serialNumber">Número de serie</label>
                 <input id="serialNumber" type="text" th:field="*{serialNumber}" maxlength="150">
                 <small class="form-error" th:errors="*{serialNumber}"></small>
+            </div>
+
+            <div class="form-field">
+                <label for="chargerSerialNumber">Serie del cargador</label>
+                <input
+                        id="chargerSerialNumber"
+                        type="text"
+                        th:field="*{chargerSerialNumber}"
+                        maxlength="150"
+                >
+                <small class="form-error" th:errors="*{chargerSerialNumber}"></small>
             </div>
 
             <div class="form-field">
@@ -113,11 +115,104 @@
             </div>
         </div>
 
+        <section class="assignment-section" data-assignment-form>
+            <div class="section-heading">
+                <div>
+                    <h2>Asignación inicial</h2>
+                    <p>Opcional. Si se registra, el estado del equipo se actualiza automáticamente.</p>
+                </div>
+            </div>
+
+            <div class="field-grid">
+                <div class="form-field full-width">
+                    <label for="initialPersonId">Persona</label>
+                    <select id="initialPersonId" th:field="*{initialAssignment.personId}">
+                        <option value="">Selecciona una persona</option>
+                        <option
+                                th:each="person : ${people}"
+                                th:value="${person.id}"
+                                th:text="${person.username + ' · ' + person.fullName}"
+                        ></option>
+                    </select>
+                    <small class="form-error" th:errors="*{initialAssignment.personId}"></small>
+                </div>
+            </div>
+
+            <details class="inline-site-creation">
+                <summary>Registrar una persona nueva</summary>
+
+                <div class="field-grid">
+                    <div class="form-field">
+                        <label for="initialPersonExternalId">ID</label>
+                        <input id="initialPersonExternalId" type="text" th:field="*{initialAssignment.newPersonExternalId}">
+                    </div>
+
+                    <div class="form-field">
+                        <label for="initialPersonUsername">Nombre de usuario</label>
+                        <input id="initialPersonUsername" type="text" th:field="*{initialAssignment.newPersonUsername}">
+                    </div>
+
+                    <div class="form-field">
+                        <label for="initialPersonFullName">Nombre completo</label>
+                        <input id="initialPersonFullName" type="text" th:field="*{initialAssignment.newPersonFullName}">
+                    </div>
+
+                    <div class="form-field">
+                        <label for="initialPersonEmail">Correo</label>
+                        <input id="initialPersonEmail" type="email" th:field="*{initialAssignment.newPersonEmail}">
+                    </div>
+                </div>
+            </details>
+
+            <div class="field-grid assignment-fields">
+                <div class="form-field">
+                    <label for="initialAssignmentType">Tipo de movimiento</label>
+                    <select
+                            id="initialAssignmentType"
+                            th:field="*{initialAssignment.assignmentType}"
+                            data-assignment-type
+                    >
+                        <option value="">Selecciona una opción</option>
+                        <option
+                                th:each="type : ${assignmentTypes}"
+                                th:value="${type}"
+                                th:text="${type == T(com.assetcontrol.assignments.domain.AssignmentType).LOAN ? 'Préstamo' : 'Asignación'}"
+                        ></option>
+                    </select>
+                    <small class="form-error" th:errors="*{initialAssignment.assignmentType}"></small>
+                </div>
+
+                <div class="form-field">
+                    <label for="initialAssignedAt">Fecha de asignación</label>
+                    <input id="initialAssignedAt" type="date" th:field="*{initialAssignment.assignedAt}">
+                    <small class="form-error" th:errors="*{initialAssignment.assignedAt}"></small>
+                </div>
+
+                <div class="form-field full-width is-hidden" data-due-date-field>
+                    <label for="initialDueDate">Vencimiento del préstamo</label>
+                    <input
+                            id="initialDueDate"
+                            type="date"
+                            th:field="*{initialAssignment.dueDate}"
+                            data-due-date
+                    >
+                    <small class="form-error" th:errors="*{initialAssignment.dueDate}"></small>
+                </div>
+
+                <div class="form-field full-width">
+                    <label for="initialNotes">Notas de asignación</label>
+                    <textarea id="initialNotes" th:field="*{initialAssignment.notes}"></textarea>
+                </div>
+            </div>
+        </section>
+
         <div class="form-actions">
             <a class="secondary-button" th:href="@{/computers}">Cancelar</a>
             <button class="primary-button" type="submit">Guardar equipo</button>
         </div>
     </form>
 </main>
+
+<script th:src="@{/js/assignment-form.js}" defer></script>
 </body>
 </html>

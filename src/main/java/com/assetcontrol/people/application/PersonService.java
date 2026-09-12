@@ -22,16 +22,27 @@ public class PersonService {
         return personRepository.findAllByOrderByFullNameAsc();
     }
 
+    private String normalizeUsername(String value) {
+        return normalizeRequired(value, "nombre de usuario")
+                .toLowerCase(Locale.ROOT);
+    }
+
     @Transactional
     public Person create(CreatePersonCommand command) {
         String externalId = normalizeIdentifier(command.externalId());
+        String username = normalizeUsername(command.username());
 
         if (personRepository.existsByExternalIdIgnoreCase(externalId)) {
             throw new DuplicatePersonIdentifierException(externalId);
         }
 
+        if (personRepository.existsByUsernameIgnoreCase(username)) {
+            throw new DuplicatePersonUsernameException(username);
+        }
+
         Person person = new Person(
                 externalId,
+                username,
                 normalizeRequired(command.fullName(), "nombre"),
                 normalizeEmail(command.email())
         );

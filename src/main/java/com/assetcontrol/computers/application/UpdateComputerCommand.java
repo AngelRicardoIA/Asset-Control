@@ -1,9 +1,9 @@
 package com.assetcontrol.computers.application;
 
-import com.assetcontrol.computers.domain.ComputerStatus;
 import com.assetcontrol.computers.domain.ComputerType;
+import com.assetcontrol.computers.domain.ComputerStatus;
 
-public record CreateComputerCommand(
+public record UpdateComputerCommand(
         String asset,
         String host,
         ComputerType type,

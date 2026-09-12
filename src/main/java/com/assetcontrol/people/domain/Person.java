@@ -22,6 +22,9 @@ public class Person {
     @Column(name = "external_id", nullable = false, length = 100)
     private String externalId;
 
+    @Column(nullable = false, length = 100)
+    private String username;
+
     @Column(name = "full_name", nullable = false, length = 150)
     private String fullName;
 
@@ -37,8 +40,14 @@ public class Person {
     protected Person() {
     }
 
-    public Person(String externalId, String fullName, String email) {
+    public Person(
+            String externalId,
+            String username,
+            String fullName,
+            String email
+    ) {
         this.externalId = externalId;
+        this.username = username;
         this.fullName = fullName;
         this.email = email;
     }
@@ -69,5 +78,9 @@ public class Person {
 
     public String getEmail() {
         return email;
+    }
+
+    public String getUsername() {
+        return username;
     }
 }

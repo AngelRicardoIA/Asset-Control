@@ -19,7 +19,7 @@
                 type="search"
                 name="query"
                 th:value="${query}"
-                placeholder="Hostname, asset, marca, modelo o serie"
+                placeholder="Hostname, usuario, nombre, asset, marca o modelo"
         >
 
         <select name="status">
@@ -63,6 +63,17 @@
                     <small th:text="${'Asset: ' + computer.asset + ' · ' + computer.site.name}">
                         Asset · Ubicación
                     </small>
+
+                    <div
+                            class="computer-users"
+                            th:if="${activeAssignmentsByComputerId.containsKey(computer.id)}"
+                    >
+                        <span>Usuario:</span>
+                        <strong
+                                th:each="assignment, iteration : ${activeAssignmentsByComputerId.get(computer.id)}"
+                                th:text="${assignment.person.username + (iteration.last ? '' : ', ')}"
+                        >usuario</strong>
+                    </div>
                 </div>
 
                 <span

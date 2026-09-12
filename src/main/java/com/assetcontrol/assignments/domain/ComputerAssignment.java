@@ -92,6 +92,20 @@ public class ComputerAssignment {
         return returnedAt == null;
     }
 
+    public void close(LocalDate returnedAt) {
+        if (!isActive()) {
+            throw new IllegalStateException("La asignación ya está cerrada.");
+        }
+
+        if (returnedAt.isBefore(assignedAt)) {
+            throw new IllegalArgumentException(
+                    "La fecha de devolución no puede ser anterior a la asignación."
+            );
+        }
+
+        this.returnedAt = returnedAt;
+    }
+
     public Long getId() {
         return id;
     }

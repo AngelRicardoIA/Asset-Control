@@ -1,15 +1,15 @@
 package com.assetcontrol.computers.web;
 
-import com.assetcontrol.computers.application.CreateComputerCommand;
-import com.assetcontrol.computers.domain.ComputerStatus;
+import com.assetcontrol.computers.application.UpdateComputerCommand;
+import com.assetcontrol.computers.domain.Computer;
 import com.assetcontrol.computers.domain.ComputerType;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import jakarta.validation.Valid;
+import com.assetcontrol.computers.domain.ComputerStatus;
 
-public class ComputerForm {
+public class UpdateComputerForm {
 
     @NotBlank(message = "El asset es obligatorio.")
     @Size(max = 100, message = "El asset no puede superar 100 caracteres.")
@@ -34,28 +34,38 @@ public class ComputerForm {
     @Size(max = 150, message = "El número de serie no puede superar 150 caracteres.")
     private String serialNumber;
 
-    @Size(max = 150, message = "El número de serie del cargador no puede superar 150 caracteres.")
-    private String chargerSerialNumber;
-
     @Size(max = 100, message = "El sistema operativo no puede superar 100 caracteres.")
     private String operatingSystem;
 
     @NotNull(message = "Selecciona un estado.")
-    private ComputerStatus status = ComputerStatus.AVAILABLE;
+    private ComputerStatus status;
 
     private Long siteId;
 
     @Size(max = 100, message = "La ubicación no puede superar 100 caracteres.")
     private String newSiteName;
 
-    @Valid
-    private InitialAssignmentForm initialAssignment = new InitialAssignmentForm();
-
     @Size(max = 1000, message = "Las observaciones no pueden superar 1000 caracteres.")
     private String observations;
 
-    public CreateComputerCommand toCommand() {
-        return new CreateComputerCommand(
+    public static UpdateComputerForm from(Computer computer) {
+        UpdateComputerForm form = new UpdateComputerForm();
+        form.asset = computer.getAsset();
+        form.host = computer.getHost();
+        form.type = computer.getType();
+        form.brand = computer.getBrand();
+        form.model = computer.getModel();
+        form.serialNumber = computer.getSerialNumber();
+        form.chargerSerialNumber = computer.getChargerSerialNumber();
+        form.operatingSystem = computer.getOperatingSystem();
+        form.status = computer.getStatus();
+        form.siteId = computer.getSite().getId();
+        form.observations = computer.getObservations();
+        return form;
+    }
+
+    public UpdateComputerCommand toCommand() {
+        return new UpdateComputerCommand(
                 asset,
                 host,
                 type,
@@ -69,6 +79,11 @@ public class ComputerForm {
                 newSiteName,
                 observations
         );
+    }
+
+    @AssertTrue(message = "Selecciona una ubicación o agrega una nueva.")
+    public boolean isSiteProvided() {
+        return siteId != null || (newSiteName != null && !newSiteName.isBlank());
     }
 
     public String getAsset() {
@@ -119,20 +134,15 @@ public class ComputerForm {
         this.serialNumber = serialNumber;
     }
 
+    @Size(max = 150, message = "El número de serie del cargador no puede superar 150 caracteres.")
+    private String chargerSerialNumber;
+
     public String getOperatingSystem() {
         return operatingSystem;
     }
 
     public void setOperatingSystem(String operatingSystem) {
         this.operatingSystem = operatingSystem;
-    }
-
-    public ComputerStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(ComputerStatus status) {
-        this.status = status;
     }
 
     public Long getSiteId() {
@@ -143,19 +153,6 @@ public class ComputerForm {
         this.siteId = siteId;
     }
 
-    public String getObservations() {
-        return observations;
-    }
-
-    public void setObservations(String observations) {
-        this.observations = observations;
-    }
-
-    @AssertTrue(message = "Selecciona una ubicación o agrega una nueva.")
-    public boolean isSiteProvided() {
-        return siteId != null || (newSiteName != null && !newSiteName.isBlank());
-    }
-
     public String getNewSiteName() {
         return newSiteName;
     }
@@ -164,12 +161,20 @@ public class ComputerForm {
         this.newSiteName = newSiteName;
     }
 
-    public InitialAssignmentForm getInitialAssignment() {
-        return initialAssignment;
+    public String getObservations() {
+        return observations;
     }
 
-    public void setInitialAssignment(InitialAssignmentForm initialAssignment) {
-        this.initialAssignment = initialAssignment;
+    public void setObservations(String observations) {
+        this.observations = observations;
+    }
+
+    public ComputerStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(ComputerStatus status) {
+        this.status = status;
     }
 
     public String getChargerSerialNumber() {

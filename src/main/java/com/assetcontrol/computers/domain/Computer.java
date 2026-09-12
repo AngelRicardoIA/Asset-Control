@@ -44,6 +44,9 @@ public class Computer {
     @Column(name = "serial_number", nullable = false, length = 150)
     private String serialNumber;
 
+    @Column(name = "charger_serial_number", length = 150)
+    private String chargerSerialNumber;
+
     @Column(name = "operating_system", length = 100)
     private String operatingSystem;
 
@@ -74,6 +77,7 @@ public class Computer {
             String brand,
             String model,
             String serialNumber,
+            String chargerSerialNumber,
             String operatingSystem,
             ComputerStatus status,
             Site site,
@@ -85,6 +89,7 @@ public class Computer {
         this.brand = brand;
         this.model = model;
         this.serialNumber = serialNumber;
+        this.chargerSerialNumber = chargerSerialNumber;
         this.operatingSystem = operatingSystem;
         this.status = status;
         this.site = site;
@@ -105,6 +110,30 @@ public class Computer {
 
     public void changeStatus(ComputerStatus status) {
         this.status = status;
+    }
+
+    public void updateDetails(
+            String asset,
+            String host,
+            ComputerType type,
+            String brand,
+            String model,
+            String serialNumber,
+            String chargerSerialNumber,
+            String operatingSystem,
+            Site site,
+            String observations
+    ) {
+        this.asset = asset;
+        this.host = host;
+        this.type = type;
+        this.brand = brand;
+        this.model = model;
+        this.serialNumber = serialNumber;
+        this.chargerSerialNumber = chargerSerialNumber;
+        this.operatingSystem = operatingSystem;
+        this.site = site;
+        this.observations = observations;
     }
 
     public Long getId() {
@@ -157,5 +186,9 @@ public class Computer {
 
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
+    }
+
+    public String getChargerSerialNumber() {
+        return chargerSerialNumber;
     }
 }

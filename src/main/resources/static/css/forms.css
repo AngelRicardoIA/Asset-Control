@@ -392,3 +392,19 @@
         justify-items: start;
     }
 }
+
+.is-hidden {
+    display: none !important;
+}
+
+.computer-users {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.computer-users strong {
+    color: var(--text-primary);
+}

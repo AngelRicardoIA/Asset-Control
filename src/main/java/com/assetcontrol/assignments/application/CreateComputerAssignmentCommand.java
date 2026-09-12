@@ -8,6 +8,7 @@ public record CreateComputerAssignmentCommand(
         Long computerId,
         Long personId,
         String newPersonExternalId,
+        String newPersonUsername,
         String newPersonFullName,
         String newPersonEmail,
         AssignmentType assignmentType,

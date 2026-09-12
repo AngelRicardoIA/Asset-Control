@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import com.assetcontrol.people.application.DuplicatePersonUsernameException;
 
 @Controller
 @RequestMapping("/computers/{computerId}/assignments")
@@ -79,6 +80,12 @@ public class ComputerAssignmentController {
                     "assignment.invalid",
                     exception.getMessage()
             );
+        } catch (DuplicatePersonUsernameException exception) {
+            bindingResult.rejectValue(
+                    "newPersonUsername",
+                    "person.username.duplicate",
+                    exception.getMessage()
+            );
         }
 
         prepareFormModel(computerId, model);
@@ -97,6 +104,15 @@ public class ComputerAssignmentController {
     ) {
         if (assignmentForm.getPersonId() != null) {
             return;
+        }
+
+        if (assignmentForm.getNewPersonUsername() == null
+                || assignmentForm.getNewPersonUsername().isBlank()) {
+            bindingResult.rejectValue(
+                    "newPersonUsername",
+                    "person.username.required",
+                    "El nombre de usuario es obligatorio."
+            );
         }
 
         if (!assignmentForm.hasNewPersonData()) {
@@ -136,5 +152,14 @@ public class ComputerAssignmentController {
                 );
             }
         }
+    }
+
+    @PostMapping("/{assignmentId}/close")
+    public String closeAssignment(
+            @PathVariable Long computerId,
+            @PathVariable Long assignmentId
+    ) {
+        assignmentService.close(computerId, assignmentId);
+        return "redirect:/computers/" + computerId;
     }
 }

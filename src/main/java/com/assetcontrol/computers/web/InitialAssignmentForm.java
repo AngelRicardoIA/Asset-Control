@@ -1,14 +1,13 @@
-package com.assetcontrol.assignments.web;
+package com.assetcontrol.computers.web;
 
 import com.assetcontrol.assignments.application.CreateComputerAssignmentCommand;
 import com.assetcontrol.assignments.domain.AssignmentType;
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
 
-public class ComputerAssignmentForm {
+public class InitialAssignmentForm {
 
     private Long personId;
 
@@ -25,16 +24,32 @@ public class ComputerAssignmentForm {
     @Size(max = 254, message = "El correo no puede superar 254 caracteres.")
     private String newPersonEmail;
 
-    @NotNull(message = "Selecciona el tipo de movimiento.")
     private AssignmentType assignmentType;
 
-    @NotNull(message = "Selecciona la fecha de asignación.")
     private LocalDate assignedAt = LocalDate.now();
 
     private LocalDate dueDate;
 
     @Size(max = 1000, message = "Las notas no pueden superar 1000 caracteres.")
     private String notes;
+
+    public boolean hasData() {
+        return personId != null
+                || hasText(newPersonExternalId)
+                || hasText(newPersonUsername)
+                || hasText(newPersonFullName)
+                || hasText(newPersonEmail)
+                || assignmentType != null
+                || dueDate != null
+                || hasText(notes);
+    }
+
+    public boolean hasCompleteNewPersonData() {
+        return hasText(newPersonExternalId)
+                && hasText(newPersonUsername)
+                && hasText(newPersonFullName)
+                && hasText(newPersonEmail);
+    }
 
     public CreateComputerAssignmentCommand toCommand(Long computerId) {
         return new CreateComputerAssignmentCommand(
@@ -49,20 +64,6 @@ public class ComputerAssignmentForm {
                 dueDate,
                 notes
         );
-    }
-
-    public boolean hasNewPersonData() {
-        return hasText(newPersonExternalId)
-                || hasText(newPersonUsername)
-                || hasText(newPersonFullName)
-                || hasText(newPersonEmail);
-    }
-
-    public boolean hasCompleteNewPersonData() {
-        return hasText(newPersonExternalId)
-                && hasText(newPersonUsername)
-                && hasText(newPersonFullName)
-                && hasText(newPersonEmail);
     }
 
     private boolean hasText(String value) {
@@ -83,6 +84,14 @@ public class ComputerAssignmentForm {
 
     public void setNewPersonExternalId(String newPersonExternalId) {
         this.newPersonExternalId = newPersonExternalId;
+    }
+
+    public String getNewPersonUsername() {
+        return newPersonUsername;
+    }
+
+    public void setNewPersonUsername(String newPersonUsername) {
+        this.newPersonUsername = newPersonUsername;
     }
 
     public String getNewPersonFullName() {
@@ -131,13 +140,5 @@ public class ComputerAssignmentForm {
 
     public void setNotes(String notes) {
         this.notes = notes;
-    }
-
-    public String getNewPersonUsername() {
-        return newPersonUsername;
-    }
-
-    public void setNewPersonUsername(String newPersonUsername) {
-        this.newPersonUsername = newPersonUsername;
     }
 }

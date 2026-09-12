@@ -15,6 +15,7 @@
 
     <form
             class="form-panel"
+            data-assignment-form
             th:action="@{/computers/{computerId}/assignments(computerId=${computer.id})}"
             th:object="${assignment}"
             method="post"
@@ -26,7 +27,7 @@
                 <option
                         th:each="person : ${people}"
                         th:value="${person.id}"
-                        th:text="${person.fullName + ' · ' + person.externalId}"
+                        th:text="${person.username + ' · ' + person.fullName}"
                 ></option>
             </select>
             <small class="form-error" th:errors="*{personId}"></small>
@@ -43,12 +44,18 @@
                 </div>
 
                 <div class="form-field">
+                    <label for="newPersonUsername">Nombre de usuario</label>
+                    <input id="newPersonUsername" type="text" th:field="*{newPersonUsername}" maxlength="100">
+                    <small class="form-error" th:errors="*{newPersonUsername}"></small>
+                </div>
+
+                <div class="form-field">
                     <label for="newPersonFullName">Nombre completo</label>
                     <input id="newPersonFullName" type="text" th:field="*{newPersonFullName}" maxlength="150">
                     <small class="form-error" th:errors="*{newPersonFullName}"></small>
                 </div>
 
-                <div class="form-field full-width">
+                <div class="form-field">
                     <label for="newPersonEmail">Correo</label>
                     <input id="newPersonEmail" type="email" th:field="*{newPersonEmail}" maxlength="254">
                     <small class="form-error" th:errors="*{newPersonEmail}"></small>
@@ -59,7 +66,11 @@
         <div class="field-grid assignment-fields">
             <div class="form-field">
                 <label for="assignmentType">Tipo de movimiento</label>
-                <select id="assignmentType" th:field="*{assignmentType}">
+                <select
+                        id="assignmentType"
+                        th:field="*{assignmentType}"
+                        data-assignment-type
+                >
                     <option value="">Selecciona una opción</option>
                     <option
                             th:each="type : ${assignmentTypes}"
@@ -76,9 +87,14 @@
                 <small class="form-error" th:errors="*{assignedAt}"></small>
             </div>
 
-            <div class="form-field full-width">
+            <div class="form-field full-width" data-due-date-field>
                 <label for="dueDate">Vencimiento del préstamo</label>
-                <input id="dueDate" type="date" th:field="*{dueDate}">
+                <input
+                        id="dueDate"
+                        type="date"
+                        th:field="*{dueDate}"
+                        data-due-date
+                >
                 <small class="form-error" th:errors="*{dueDate}"></small>
             </div>
 
@@ -95,5 +111,7 @@
         </div>
     </form>
 </main>
+
+<script th:src="@{/js/assignment-form.js}" defer></script>
 </body>
 </html>
