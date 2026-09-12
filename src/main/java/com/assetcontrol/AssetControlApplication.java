@@ -9,5 +9,4 @@ public class AssetControlApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(AssetControlApplication.class, args);
 	}
-
 }

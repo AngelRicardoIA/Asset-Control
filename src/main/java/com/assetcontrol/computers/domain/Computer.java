@@ -103,6 +103,10 @@ public class Computer {
         updatedAt = LocalDateTime.now();
     }
 
+    public void changeStatus(ComputerStatus status) {
+        this.status = status;
+    }
+
     public Long getId() {
         return id;
     }
