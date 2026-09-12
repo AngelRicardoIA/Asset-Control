@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="https://www.thymeleaf.org">
+<head th:replace="~{fragments/document-head :: head('Detalle del equipo')}"></head>
+<body>
+<header th:replace="~{fragments/app-header :: header}"></header>
+
+<main class="page-content">
+    <section class="page-heading">
+        <div>
+            <p class="eyebrow">Equipo de cómputo</p>
+            <h1 th:text="${computer.host}">HOST-001</h1>
+            <p th:text="${computer.brand + ' ' + computer.model}">Marca Modelo</p>
+        </div>
+
+        <a class="secondary-button" th:href="@{/computers}">Volver al inventario</a>
+    </section>
+
+    <section class="detail-grid">
+        <article class="detail-card">
+            <span>Estado</span>
+            <strong th:text="${computer.status == T(com.assetcontrol.computers.domain.ComputerStatus).AVAILABLE ? 'Disponible' : computer.status == T(com.assetcontrol.computers.domain.ComputerStatus).ASSIGNED ? 'Asignado' : computer.status == T(com.assetcontrol.computers.domain.ComputerStatus).LOANED ? 'Préstamo' : 'Baja'}">Disponible</strong>
+        </article>
+
+        <article class="detail-card">
+            <span>Ubicación actual</span>
+            <strong th:text="${computer.site.name}">Ubicación</strong>
+        </article>
+
+        <article class="detail-card">
+            <span>Tipo</span>
+            <strong th:text="${computer.type == T(com.assetcontrol.computers.domain.ComputerType).LAPTOP ? 'Laptop' : 'Equipo de escritorio'}">Laptop</strong>
+        </article>
+
+        <article class="detail-card">
+            <span>Asset</span>
+            <strong th:text="${computer.asset}">ASSET-001</strong>
+        </article>
+
+        <article class="detail-card">
+            <span>Número de serie</span>
+            <strong th:text="${computer.serialNumber}">Serie</strong>
+        </article>
+
+        <article class="detail-card">
+            <span>Sistema operativo</span>
+            <strong th:text="${computer.operatingSystem ?: 'Sin registrar'}">Sistema operativo</strong>
+        </article>
+    </section>
+
+    <section class="form-panel detail-notes">
+        <h2>Observaciones</h2>
+        <p th:text="${computer.observations ?: 'Sin observaciones registradas.'}">
+            Sin observaciones registradas.
+        </p>
+    </section>
+</main>
+</body>
+</html>

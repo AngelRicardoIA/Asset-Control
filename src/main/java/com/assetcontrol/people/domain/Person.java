@@ -1,4 +1,4 @@
-package com.assetcontrol.sites.domain;
+package com.assetcontrol.people.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -12,18 +12,21 @@ import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "sites")
-public class Site {
+@Table(name = "people")
+public class Person {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 100)
-    private String name;
+    @Column(name = "external_id", nullable = false, length = 100)
+    private String externalId;
 
-    @Column(name = "is_active", nullable = false)
-    private boolean active;
+    @Column(name = "full_name", nullable = false, length = 150)
+    private String fullName;
+
+    @Column(nullable = false, length = 254)
+    private String email;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
@@ -31,12 +34,13 @@ public class Site {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    protected Site() {
+    protected Person() {
     }
 
-    public Site(String name) {
-        this.name = name;
-        this.active = true;
+    public Person(String externalId, String fullName, String email) {
+        this.externalId = externalId;
+        this.fullName = fullName;
+        this.email = email;
     }
 
     @PrePersist
@@ -51,19 +55,19 @@ public class Site {
         updatedAt = LocalDateTime.now();
     }
 
-    public void activate() {
-        active = true;
-    }
-
     public Long getId() {
         return id;
     }
 
-    public String getName() {
-        return name;
+    public String getExternalId() {
+        return externalId;
     }
 
-    public boolean isActive() {
-        return active;
+    public String getFullName() {
+        return fullName;
+    }
+
+    public String getEmail() {
+        return email;
     }
 }
