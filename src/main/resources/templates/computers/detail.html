@@ -12,7 +12,13 @@
             <p th:text="${computer.brand + ' ' + computer.model}">Marca Modelo</p>
         </div>
 
-        <a class="secondary-button" th:href="@{/computers}">Volver al inventario</a>
+        <div class="page-actions">
+            <a class="secondary-button" th:href="@{/computers}">Volver al inventario</a>
+            <a
+                    class="primary-button"
+                    th:href="@{/computers/{computerId}/assignments/new(computerId=${computer.id})}"
+            >Asignar equipo</a>
+        </div>
     </section>
 
     <section class="detail-grid">
@@ -45,6 +51,49 @@
             <span>Sistema operativo</span>
             <strong th:text="${computer.operatingSystem ?: 'Sin registrar'}">Sistema operativo</strong>
         </article>
+    </section>
+
+    <section class="form-panel assignment-history">
+        <div class="section-heading">
+            <div>
+                <h2>Asignaciones e historial</h2>
+                <p>Movimientos registrados para este equipo.</p>
+            </div>
+        </div>
+
+        <div class="empty-state" th:if="${#lists.isEmpty(assignments)}">
+            <h3>Sin asignaciones</h3>
+            <p>Este equipo todavía no tiene movimientos registrados.</p>
+        </div>
+
+        <div class="assignment-list" th:unless="${#lists.isEmpty(assignments)}">
+            <article class="assignment-item" th:each="assignment : ${assignments}">
+                <div class="assignment-person">
+                    <strong th:text="${assignment.person.fullName}">Nombre completo</strong>
+                    <span th:text="${assignment.person.externalId + ' · ' + assignment.person.email}">ID · correo</span>
+                    <small th:text="${'Desde: ' + #temporals.format(assignment.assignedAt, 'dd/MM/yyyy')}">Desde</small>
+                </div>
+
+                <div class="assignment-status">
+                <span
+                        class="status-badge"
+                        th:classappend="${assignment.assignmentType == T(com.assetcontrol.assignments.domain.AssignmentType).LOAN ? ' status-loaned' : ' status-assigned'}"
+                        th:text="${assignment.assignmentType == T(com.assetcontrol.assignments.domain.AssignmentType).LOAN ? 'Préstamo' : 'Asignación'}"
+                >Asignación</span>
+
+                    <small
+                            class="assignment-expired"
+                            th:if="${assignment.assignmentType == T(com.assetcontrol.assignments.domain.AssignmentType).LOAN and assignment.active and assignment.dueDate.isBefore(T(java.time.LocalDate).now())}"
+                            th:text="${'Venció: ' + #temporals.format(assignment.dueDate, 'dd/MM/yyyy')}"
+                    >Venció</small>
+
+                    <small
+                            th:if="${assignment.assignmentType == T(com.assetcontrol.assignments.domain.AssignmentType).LOAN and assignment.active and !assignment.dueDate.isBefore(T(java.time.LocalDate).now())}"
+                            th:text="${'Vence: ' + #temporals.format(assignment.dueDate, 'dd/MM/yyyy')}"
+                    >Vence</small>
+                </div>
+            </article>
+        </div>
     </section>
 
     <section class="form-panel detail-notes">

@@ -7,6 +7,9 @@ import java.time.LocalDate;
 public record CreateComputerAssignmentCommand(
         Long computerId,
         Long personId,
+        String newPersonExternalId,
+        String newPersonFullName,
+        String newPersonEmail,
         AssignmentType assignmentType,
         LocalDate assignedAt,
         LocalDate dueDate,

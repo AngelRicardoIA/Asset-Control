@@ -10,6 +10,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import com.assetcontrol.assignments.application.ComputerAssignmentService;
 
 @Controller
 @RequestMapping("/computers")
@@ -17,13 +18,16 @@ public class ComputerController {
 
     private final ComputerService computerService;
     private final SiteService siteService;
+    private final ComputerAssignmentService assignmentService;
 
     public ComputerController(
             ComputerService computerService,
-            SiteService siteService
+            SiteService siteService,
+            ComputerAssignmentService assignmentService
     ) {
         this.computerService = computerService;
         this.siteService = siteService;
+        this.assignmentService = assignmentService;
     }
 
     @GetMapping
@@ -45,6 +49,7 @@ public class ComputerController {
     @GetMapping("/{id}")
     public String showComputerDetail(@PathVariable Long id, Model model) {
         model.addAttribute("computer", computerService.findById(id));
+        model.addAttribute("assignments", assignmentService.findHistoryByComputerId(id));
         return "computers/detail";
     }
 

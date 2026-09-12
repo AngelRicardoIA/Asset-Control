@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="https://www.thymeleaf.org">
+<head th:replace="~{fragments/document-head :: head('Asignar equipo')}"></head>
+<body>
+<header th:replace="~{fragments/app-header :: header}"></header>
+
+<main class="page-content narrow-content">
+    <section class="page-heading">
+        <div>
+            <p class="eyebrow">Movimiento de equipo</p>
+            <h1 th:text="${computer.host}">HOST-001</h1>
+            <p th:text="${computer.brand + ' ' + computer.model}">Marca Modelo</p>
+        </div>
+    </section>
+
+    <form
+            class="form-panel"
+            th:action="@{/computers/{computerId}/assignments(computerId=${computer.id})}"
+            th:object="${assignment}"
+            method="post"
+    >
+        <div class="form-field">
+            <label for="personId">Persona</label>
+            <select id="personId" th:field="*{personId}">
+                <option value="">Selecciona una persona</option>
+                <option
+                        th:each="person : ${people}"
+                        th:value="${person.id}"
+                        th:text="${person.fullName + ' · ' + person.externalId}"
+                ></option>
+            </select>
+            <small class="form-error" th:errors="*{personId}"></small>
+        </div>
+
+        <details class="inline-site-creation" th:open="${#lists.isEmpty(people)}">
+            <summary>Registrar una persona nueva</summary>
+
+            <div class="field-grid">
+                <div class="form-field">
+                    <label for="newPersonExternalId">ID</label>
+                    <input id="newPersonExternalId" type="text" th:field="*{newPersonExternalId}" maxlength="100">
+                    <small class="form-error" th:errors="*{newPersonExternalId}"></small>
+                </div>
+
+                <div class="form-field">
+                    <label for="newPersonFullName">Nombre completo</label>
+                    <input id="newPersonFullName" type="text" th:field="*{newPersonFullName}" maxlength="150">
+                    <small class="form-error" th:errors="*{newPersonFullName}"></small>
+                </div>
+
+                <div class="form-field full-width">
+                    <label for="newPersonEmail">Correo</label>
+                    <input id="newPersonEmail" type="email" th:field="*{newPersonEmail}" maxlength="254">
+                    <small class="form-error" th:errors="*{newPersonEmail}"></small>
+                </div>
+            </div>
+        </details>
+
+        <div class="field-grid assignment-fields">
+            <div class="form-field">
+                <label for="assignmentType">Tipo de movimiento</label>
+                <select id="assignmentType" th:field="*{assignmentType}">
+                    <option value="">Selecciona una opción</option>
+                    <option
+                            th:each="type : ${assignmentTypes}"
+                            th:value="${type}"
+                            th:text="${type == T(com.assetcontrol.assignments.domain.AssignmentType).LOAN ? 'Préstamo' : 'Asignación'}"
+                    ></option>
+                </select>
+                <small class="form-error" th:errors="*{assignmentType}"></small>
+            </div>
+
+            <div class="form-field">
+                <label for="assignedAt">Fecha de asignación</label>
+                <input id="assignedAt" type="date" th:field="*{assignedAt}">
+                <small class="form-error" th:errors="*{assignedAt}"></small>
+            </div>
+
+            <div class="form-field full-width">
+                <label for="dueDate">Vencimiento del préstamo</label>
+                <input id="dueDate" type="date" th:field="*{dueDate}">
+                <small class="form-error" th:errors="*{dueDate}"></small>
+            </div>
+
+            <div class="form-field full-width">
+                <label for="notes">Notas</label>
+                <textarea id="notes" th:field="*{notes}" maxlength="1000"></textarea>
+                <small class="form-error" th:errors="*{notes}"></small>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <a class="secondary-button" th:href="@{/computers/{id}(id=${computer.id})}">Cancelar</a>
+            <button class="primary-button" type="submit">Guardar movimiento</button>
+        </div>
+    </form>
+</main>
+</body>
+</html>

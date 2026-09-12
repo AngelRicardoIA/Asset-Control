@@ -321,3 +321,74 @@
         grid-template-columns: 1fr;
     }
 }
+
+.page-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.assignment-history {
+    margin-bottom: 1.5rem;
+}
+
+.section-heading {
+    margin-bottom: 1.25rem;
+}
+
+.section-heading h2 {
+    margin: 0 0 0.35rem;
+}
+
+.section-heading p {
+    color: var(--text-muted);
+    margin: 0;
+}
+
+.assignment-list {
+    display: grid;
+    gap: 0.8rem;
+}
+
+.assignment-item {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    border-radius: 1rem;
+    box-shadow: var(--shadow-pressed);
+    padding: 1rem;
+}
+
+.assignment-person,
+.assignment-status {
+    display: grid;
+    gap: 0.25rem;
+}
+
+.assignment-person span,
+.assignment-person small,
+.assignment-status small {
+    color: var(--text-muted);
+}
+
+.assignment-status {
+    justify-items: end;
+}
+
+.assignment-expired {
+    color: #c82f2f !important;
+    font-weight: 700;
+}
+
+@media (max-width: 760px) {
+    .page-actions,
+    .assignment-item {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .assignment-status {
+        justify-items: start;
+    }
+}
