@@ -195,4 +195,30 @@ public class ComputerAssignmentService {
                         Collectors.toList()
                 ));
     }
+
+    public Map<Long, ComputerAssignment> findLastClosedByComputerIds(
+            Collection<Long> computerIds
+    ) {
+        if (computerIds.isEmpty()) {
+            return Map.of();
+        }
+
+        Map<Long, ComputerAssignment> lastAssignments = new LinkedHashMap<>();
+
+        for (ComputerAssignment assignment
+                : assignmentRepository.findClosedByComputerIdsWithPerson(computerIds)) {
+            lastAssignments.putIfAbsent(
+                    assignment.getComputer().getId(),
+                    assignment
+            );
+        }
+
+        return lastAssignments;
+    }
+
+    public ComputerAssignment findLastClosedByComputerId(Long computerId) {
+        return assignmentRepository.findClosedByComputerIdsWithPerson(
+                List.of(computerId)
+        ).stream().findFirst().orElse(null);
+    }
 }

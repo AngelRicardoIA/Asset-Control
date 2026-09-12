@@ -55,4 +55,16 @@ public interface ComputerAssignmentRepository
     List<ComputerAssignment> findActiveByComputerIdsWithPerson(
             @Param("computerIds") Collection<Long> computerIds
     );
+    @Query("""
+        SELECT assignment
+        FROM ComputerAssignment assignment
+        JOIN FETCH assignment.computer
+        JOIN FETCH assignment.person
+        WHERE assignment.computer.id IN :computerIds
+        AND assignment.returnedAt IS NOT NULL
+        ORDER BY assignment.computer.id, assignment.returnedAt DESC, assignment.id DESC
+        """)
+    List<ComputerAssignment> findClosedByComputerIdsWithPerson(
+            @Param("computerIds") Collection<Long> computerIds
+    );
 }

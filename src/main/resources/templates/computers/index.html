@@ -74,6 +74,15 @@
                                 th:text="${assignment.person.username + (iteration.last ? '' : ', ')}"
                         >usuario</strong>
                     </div>
+                    <div
+                            class="computer-last-user"
+                            th:if="${computer.status == T(com.assetcontrol.computers.domain.ComputerStatus).AVAILABLE and lastClosedAssignmentByComputerId.containsKey(computer.id)}"
+                    >
+                        <span>Último usuario:</span>
+                        <strong
+                                th:text="${lastClosedAssignmentByComputerId.get(computer.id).person.username}"
+                        >usuario</strong>
+                    </div>
                 </div>
 
                 <span

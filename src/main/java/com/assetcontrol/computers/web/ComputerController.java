@@ -63,12 +63,22 @@ public class ComputerController {
     ) {
         List<Computer> computers = computerService.search(query, status, type);
 
+        List<Long> availableComputerIds = computers.stream()
+                .filter(computer -> computer.getStatus() == ComputerStatus.AVAILABLE)
+                .map(Computer::getId)
+                .toList();
+
         model.addAttribute("computers", computers);
         model.addAttribute(
                 "activeAssignmentsByComputerId",
                 assignmentService.findActiveByComputerIds(
                         computers.stream().map(Computer::getId).toList()
                 )
+        );
+
+        model.addAttribute(
+                "lastClosedAssignmentByComputerId",
+                assignmentService.findLastClosedByComputerIds(availableComputerIds)
         );
         model.addAttribute("query", query);
         model.addAttribute("selectedStatus", status);
@@ -90,6 +100,11 @@ public class ComputerController {
         model.addAttribute(
                 "maintenanceRecords",
                 maintenanceService.findByComputerId(id)
+        );
+
+        model.addAttribute(
+                "lastClosedAssignment",
+                assignmentService.findLastClosedByComputerId(id)
         );
 
         return "computers/detail";
