@@ -1,127 +1,137 @@
 <!DOCTYPE html>
-<html lang="es" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/phone-document-head :: phoneDocumentHead('Detalle del teléfono')}"></head>
+<html lang="es" xmlns:th="https://www.thymeleaf.org">
+<head th:replace="~{fragments/document-head :: head('Detalle del teléfono')}"></head>
 <body>
-<div class="app-shell">
-    <header th:replace="~{fragments/phone-navigation :: phoneNavigation('phones')}"></header>
+<header th:replace="~{fragments/app-header :: header}"></header>
 
-    <main class="phone-page">
-        <section class="phone-page-header">
+<main class="page-content">
+    <section class="page-heading">
+        <div>
+            <p class="eyebrow">Teléfono</p>
+            <h1 th:text="${phone.phoneLine != null ? phone.phoneLine.number : phone.imei}"></h1>
+            <p th:text="${phone.brand + ' ' + phone.model}"></p>
+        </div>
+
+        <div class="page-actions">
+            <a class="secondary-button" th:href="@{/phones}">Volver al inventario</a>
+            <a
+                    class="secondary-button"
+                    th:href="@{/phones/{phoneId}/edit(phoneId=${phone.id})}"
+            >Editar teléfono</a>
+            <a
+                    class="primary-button"
+                    th:if="${phone.status.name() != 'RETIRED'}"
+                    th:href="@{/phones/{phoneId}/assignments/new(phoneId=${phone.id})}"
+            >Asignar teléfono</a>
+        </div>
+    </section>
+
+    <p class="alert alert--success" th:if="${successMessage}" th:text="${successMessage}"></p>
+    <p class="alert alert--error" th:if="${errorMessage}" th:text="${errorMessage}"></p>
+
+    <section class="detail-grid">
+        <article class="detail-card">
+            <span>Estado</span>
+            <strong class="status-text"
+                    th:classappend="${' status-text-' + #strings.toLowerCase(phone.status.name())}"
+                    th:text="${phone.status.label}"></strong>
+        </article>
+
+        <article class="detail-card">
+            <span>Ubicación actual</span>
+            <strong th:text="${phone.site.name}"></strong>
+        </article>
+
+        <article class="detail-card">
+            <span>IMEI</span>
+            <strong th:text="${phone.imei}"></strong>
+        </article>
+
+        <article class="detail-card">
+            <span>Línea</span>
+            <strong th:text="${phone.phoneLine != null ? phone.phoneLine.number : 'Sin línea asignada'}"></strong>
+        </article>
+
+        <article class="detail-card">
+            <span>Proveedor</span>
+            <strong th:text="${phone.phoneLine != null && phone.phoneLine.carrier != null ? phone.phoneLine.carrier : 'Sin proveedor registrado'}"></strong>
+        </article>
+    </section>
+
+    <section class="form-panel assignment-history">
+        <div class="section-heading">
             <div>
-                <p class="phone-eyebrow">Teléfonos</p>
-                <h1 th:text="${phone.phoneLine != null ? phone.phoneLine.number : phone.imei}"></h1>
-                <p th:text="${phone.brand + ' ' + phone.model}"></p>
-            </div>
-
-            <div class="phone-actions">
-                <a class="phone-button phone-button--secondary"
-                   th:href="@{/phones/{phoneId}/edit(phoneId=${phone.id})}">
-                    Editar
-                </a>
-
-                <a class="phone-button phone-button--primary"
-                   th:if="${phone.status.name() != 'RETIRED'}"
-                   th:href="@{/phones/{phoneId}/assignments/new(phoneId=${phone.id})}">
-                    Asignar
-                </a>
-            </div>
-        </section>
-
-        <p class="phone-alert phone-alert--success"
-           th:if="${successMessage}"
-           th:text="${successMessage}">
-        </p>
-
-        <p class="phone-alert phone-alert--error"
-           th:if="${errorMessage}"
-           th:text="${errorMessage}">
-        </p>
-
-        <section class="phone-detail-grid">
-            <article class="phone-panel">
-                <h2>Datos del teléfono</h2>
-
-                <dl>
-                    <dt>IMEI</dt>
-                    <dd th:text="${phone.imei}"></dd>
-
-                    <dt>Marca</dt>
-                    <dd th:text="${phone.brand}"></dd>
-
-                    <dt>Modelo</dt>
-                    <dd th:text="${phone.model}"></dd>
-
-                    <dt>Estado</dt>
-                    <dd>
-                        <span class="phone-status"
-                              th:classappend="${' phone-status--' + #strings.toLowerCase(phone.status.name())}"
-                              th:text="${phone.status.label}">
-                        </span>
-                    </dd>
-
-                    <dt>Ubicación</dt>
-                    <dd th:text="${phone.site.name}"></dd>
-
-                    <dt>Línea</dt>
-                    <dd th:text="${phone.phoneLine != null ? phone.phoneLine.number : 'Sin línea asignada'}"></dd>
-
-                    <dt>Proveedor</dt>
-                    <dd th:text="${phone.phoneLine != null && phone.phoneLine.carrier != null ? phone.phoneLine.carrier : 'Sin proveedor registrado'}"></dd>
-
-                    <dt>Observaciones</dt>
-                    <dd th:text="${phone.observations != null ? phone.observations : 'Sin observaciones'}"></dd>
-                </dl>
-            </article>
-
-            <article class="phone-panel">
                 <h2>Asignaciones activas</h2>
+                <p>Usuarios que actualmente tienen este equipo.</p>
+            </div>
+        </div>
 
-                <p th:if="${#lists.isEmpty(activeAssignments)}">
-                    No hay asignaciones activas.
-                </p>
+        <div class="empty-state" th:if="${#lists.isEmpty(activeAssignments)}">
+            <h3>Sin asignaciones activas</h3>
+            <p>Este teléfono no está asignado a nadie en este momento.</p>
+        </div>
 
-                <div class="phone-assignment" th:each="assignment : ${activeAssignments}">
-                    <p>
-                        <strong th:text="${assignment.person.username}"></strong>
-                        <span th:text="${assignment.person.fullName}"></span>
-                    </p>
+        <div class="assignment-list" th:unless="${#lists.isEmpty(activeAssignments)}">
+            <article class="assignment-item" th:each="assignment : ${activeAssignments}">
+                <div class="assignment-person">
+                    <strong th:text="${assignment.person.fullName}"></strong>
+                    <span th:text="${assignment.person.username}"></span>
+                    <small th:text="${'Desde: ' + assignment.assignedAt}"></small>
+                </div>
 
-                    <p th:text="${assignment.type.label}"></p>
+                <div class="assignment-status">
+                    <span class="status-badge status-assigned" th:text="${assignment.type.label}"></span>
 
-                    <p th:if="${assignment.dueAt != null}"
-                       th:text="${'Vence: ' + assignment.dueAt}">
-                    </p>
+                    <small th:if="${assignment.dueAt != null}"
+                           th:text="${'Vence: ' + assignment.dueAt}">
+                    </small>
 
-                    <form th:action="@{/phone-assignments/{assignmentId}/return(assignmentId=${assignment.id})}"
-                          method="post">
-                        <button class="phone-button phone-button--secondary" type="submit">
-                            Devolver
-                        </button>
-                    </form>
+                    <div class="assignment-actions">
+                        <form th:action="@{/phone-assignments/{assignmentId}/return(assignmentId=${assignment.id})}"
+                              method="post">
+                            <button class="secondary-button" type="submit">Devolver</button>
+                        </form>
+                    </div>
                 </div>
             </article>
-        </section>
+        </div>
+    </section>
 
-        <section class="phone-panel">
-            <h2>Historial de asignaciones</h2>
+    <section class="form-panel assignment-history">
+        <div class="section-heading">
+            <div>
+                <h2>Historial de movimientos</h2>
+                <p>Registro histórico de asignaciones y devoluciones.</p>
+            </div>
+        </div>
 
-            <p th:if="${#lists.isEmpty(assignmentHistory)}">
-                Aún no hay movimientos.
-            </p>
+        <div class="empty-state" th:if="${#lists.isEmpty(assignmentHistory)}">
+            <h3>Sin historial</h3>
+            <p>Aún no hay movimientos registrados para este equipo.</p>
+        </div>
 
-            <div class="phone-assignment" th:each="assignment : ${assignmentHistory}">
-                <p>
+        <div class="assignment-list" th:unless="${#lists.isEmpty(assignmentHistory)}">
+            <article class="assignment-item" th:each="assignment : ${assignmentHistory}">
+                <div class="assignment-person">
                     <strong th:text="${assignment.person.username}"></strong>
                     <span th:text="${assignment.type.label}"></span>
-                    <span th:text="${assignment.assignedAt}"></span>
-                </p>
+                    <small th:text="${'Asignado: ' + assignment.assignedAt}"></small>
+                </div>
 
-                <p th:if="${assignment.returnedAt != null}"
-                   th:text="${'Devuelto: ' + assignment.returnedAt}">
-                </p>
-            </div>
-        </section>
-    </main>
-</div>
+                <div class="assignment-status">
+                    <small th:if="${assignment.returnedAt != null}"
+                           th:text="${'Devuelto: ' + assignment.returnedAt}">
+                    </small>
+                </div>
+            </article>
+        </div>
+    </section>
+
+    <section class="form-panel detail-notes">
+        <h2>Observaciones</h2>
+        <p th:text="${phone.observations != null and !phone.observations.isEmpty() ? phone.observations : 'Sin observaciones registradas.'}">
+        </p>
+    </section>
+</main>
 </body>
 </html>

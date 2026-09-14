@@ -1,67 +1,85 @@
 <!DOCTYPE html>
-<html lang="es" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/phone-document-head :: phoneDocumentHead('Teléfonos')}"></head>
+<html lang="es" xmlns:th="https://www.thymeleaf.org">
+<head th:replace="~{fragments/document-head :: head('Teléfonos')}"></head>
 <body>
-<div class="app-shell">
-    <header th:replace="~{fragments/phone-navigation :: phoneNavigation('phones')}"></header>
+<header th:replace="~{fragments/app-header :: header}"></header>
 
-    <main class="phone-page">
-        <section class="phone-page-header">
-            <div>
-                <p class="phone-eyebrow">Inventario</p>
-                <h1>Teléfonos</h1>
-                <p>Equipos móviles y líneas disponibles.</p>
-            </div>
+<main class="page-content">
+    <section class="page-heading">
+        <div>
+            <p class="eyebrow">Inventario</p>
+            <h1>Teléfonos</h1>
+            <p>Equipos móviles y líneas disponibles.</p>
+        </div>
+        <a class="primary-button" th:href="@{/phones/new}">Nuevo teléfono</a>
+    </section>
 
-            <a class="phone-button phone-button--primary" th:href="@{/phones/new}">
-                Nuevo teléfono
-            </a>
-        </section>
+    <form class="filter-panel" th:action="@{/phones}" method="get">
+        <input
+                type="search"
+                name="query"
+                th:value="${query}"
+                placeholder="IMEI, marca, modelo, línea o ubicación"
+        >
 
-        <p class="phone-alert phone-alert--success"
-           th:if="${successMessage}"
-           th:text="${successMessage}">
-        </p>
+        <select name="status">
+            <option value="">Todos los estados</option>
+            <option
+                    th:each="status : ${phoneStatuses}"
+                    th:value="${status}"
+                    th:selected="${status == selectedStatus}"
+                    th:text="${status.label}"
+            ></option>
+        </select>
 
-        <p class="phone-alert phone-alert--error"
-           th:if="${errorMessage}"
-           th:text="${errorMessage}">
-        </p>
+        <button class="secondary-button" type="submit">Filtrar</button>
+    </form>
 
-        <section class="phone-list" th:if="${!#lists.isEmpty(phones)}">
-            <article class="phone-card" th:each="phone : ${phones}">
-                <div>
-                    <a class="phone-card__title"
-                       th:href="@{/phones/{phoneId}(phoneId=${phone.id})}"
-                       th:text="${phone.phoneLine != null ? phone.phoneLine.number : phone.imei}">
-                    </a>
+    <p class="alert alert--success" th:if="${successMessage}" th:text="${successMessage}"></p>
+    <p class="alert alert--error" th:if="${errorMessage}" th:text="${errorMessage}"></p>
 
-                    <p th:text="${phone.brand + ' ' + phone.model}"></p>
-                    <p th:text="${'IMEI: ' + phone.imei + ' · ' + phone.site.name}"></p>
+    <section class="inventory-panel">
+        <div class="empty-state" th:if="${#lists.isEmpty(phones)}">
+            <h2>No se encontraron teléfonos</h2>
+            <p>Registra un teléfono o ajusta los filtros de búsqueda.</p>
+        </div>
 
-                    <p th:with="assignment=${primaryAssignmentsByPhoneId.get(phone.id)}"
-                       th:if="${assignment != null}">
-                        Usuario:
-                        <strong th:text="${assignment.person.username}"></strong>
-                    </p>
+        <div class="phone-list" th:unless="${#lists.isEmpty(phones)}">
+            <a
+                    class="phone-item"
+                    th:each="phone : ${phones}"
+                    th:href="@{/phones/{phoneId}(phoneId=${phone.id})}"
+            >
+                <div class="phone-main-data">
+                    <strong th:text="${phone.phoneLine != null ? phone.phoneLine.number : phone.imei}"></strong>
+                    <span th:text="${phone.brand + ' ' + phone.model}"></span>
+                    <small th:text="${'IMEI: ' + phone.imei + ' · ' + phone.site.name}"></small>
 
-                    <p th:if="${primaryAssignmentsByPhoneId.get(phone.id) == null}">
-                        Sin usuario asignado
-                    </p>
+                    <div
+                            class="phone-users"
+                            th:if="${primaryAssignmentsByPhoneId != null and primaryAssignmentsByPhoneId.containsKey(phone.id)}"
+                    >
+                        <span>Usuario:</span>
+                        <strong th:text="${primaryAssignmentsByPhoneId.get(phone.id).person.username}"></strong>
+                    </div>
+
+                    <div
+                            class="phone-last-user"
+                            th:if="${phone.status.name() == 'AVAILABLE' and lastClosedAssignmentByPhoneId != null and lastClosedAssignmentByPhoneId.containsKey(phone.id)}"
+                    >
+                        <span>Último usuario:</span>
+                        <strong th:text="${lastClosedAssignmentByPhoneId.get(phone.id).person.username}"></strong>
+                    </div>
                 </div>
 
-                <span class="phone-status"
-                      th:classappend="${' phone-status--' + #strings.toLowerCase(phone.status.name())}"
-                      th:text="${phone.status.label}">
-                </span>
-            </article>
-        </section>
-
-        <section class="phone-empty-state" th:if="${#lists.isEmpty(phones)}">
-            <h2>No hay teléfonos registrados</h2>
-            <p>Registra el primer teléfono para comenzar el inventario móvil.</p>
-        </section>
-    </main>
-</div>
+                <span
+                        class="status-badge"
+                        th:classappend="${' status-' + #strings.toLowerCase(phone.status.name())}"
+                        th:text="${phone.status.label}"
+                ></span>
+            </a>
+        </div>
+    </section>
+</main>
 </body>
 </html>

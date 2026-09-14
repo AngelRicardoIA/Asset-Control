@@ -1,85 +1,76 @@
 <!DOCTYPE html>
-<html lang="es" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/phone-document-head :: phoneDocumentHead('Asignar teléfono')}"></head>
+<html lang="es" xmlns:th="https://www.thymeleaf.org">
+<head th:replace="~{fragments/document-head :: head('Asignar teléfono')}"></head>
 <body>
-<div class="app-shell">
-    <header th:replace="~{fragments/phone-navigation :: phoneNavigation('phones')}"></header>
+<header th:replace="~{fragments/app-header :: header}"></header>
 
-    <main class="phone-page">
-        <section class="phone-page-header">
-            <div>
-                <p class="phone-eyebrow">Teléfonos</p>
-                <h1>Asignar teléfono</h1>
-                <p th:text="${phone.brand + ' ' + phone.model}"></p>
-            </div>
-        </section>
+<main class="page-content">
+    <section class="page-heading">
+        <div>
+            <p class="eyebrow">Teléfonos</p>
+            <h1>Asignar teléfono</h1>
+            <p th:text="${phone.brand + ' ' + phone.model}"></p>
+        </div>
+    </section>
 
-        <form class="phone-form"
-              data-assignment-form
-              th:action="@{/phones/{phoneId}/assignments(phoneId=${phoneId})}"
-              th:object="${form}"
-              method="post">
+    <form class="form-panel"
+          data-assignment-form
+          th:action="@{/phones/{phoneId}/assignments(phoneId=${phoneId})}"
+          th:object="${form}"
+          method="post">
 
-            <p class="phone-alert phone-alert--error"
-               th:if="${#fields.hasGlobalErrors()}"
-               th:errors="*{global}">
-            </p>
+        <p class="form-error" th:if="${#fields.hasGlobalErrors()}" th:errors="*{global}"></p>
 
-            <div class="phone-form-grid">
-                <div class="phone-field phone-field--full">
-                    <label for="personId">Usuario</label>
-                    <select id="personId" th:field="*{personId}" required>
-                        <option value="">Selecciona un usuario</option>
-                        <option th:each="person : ${people}"
-                                th:value="${person.id}"
-                                th:text="${person.username + ' · ' + person.fullName}">
-                        </option>
-                    </select>
-                    <p class="phone-error" th:errors="*{personId}"></p>
-                </div>
-
-                <div class="phone-field">
-                    <label for="type">Tipo</label>
-                    <select id="type" th:field="*{type}" data-assignment-type>
-                        <option th:each="assignmentType : ${assignmentTypes}"
-                                th:value="${assignmentType}"
-                                th:text="${assignmentType.label}">
-                        </option>
-                    </select>
-                </div>
-
-                <div class="phone-field">
-                    <label for="assignedAt">Fecha de asignación</label>
-                    <input id="assignedAt" type="date" th:field="*{assignedAt}" required>
-                    <p class="phone-error" th:errors="*{assignedAt}"></p>
-                </div>
-
-                <div class="phone-field" data-due-date>
-                    <label for="dueAt">Vencimiento</label>
-                    <input id="dueAt" type="date" th:field="*{dueAt}">
-                </div>
-
-                <div class="phone-field phone-field--full">
-                    <label for="observations">Observaciones</label>
-                    <textarea id="observations" th:field="*{observations}" maxlength="2000"></textarea>
-                    <p class="phone-error" th:errors="*{observations}"></p>
-                </div>
+        <div class="field-grid">
+            <div class="form-field full-width">
+                <label for="personId">Usuario</label>
+                <select id="personId" th:field="*{personId}" required>
+                    <option value="">Selecciona un usuario</option>
+                    <option th:each="person : ${people}"
+                            th:value="${person.id}"
+                            th:text="${person.username + ' · ' + person.fullName}">
+                    </option>
+                </select>
+                <small class="form-error" th:errors="*{personId}"></small>
             </div>
 
-            <div class="phone-form-actions">
-                <a class="phone-button phone-button--secondary"
-                   th:href="@{/phones/{phoneId}(phoneId=${phoneId})}">
-                    Cancelar
-                </a>
-
-                <button class="phone-button phone-button--primary" type="submit">
-                    Guardar asignación
-                </button>
+            <div class="form-field">
+                <label for="type">Tipo</label>
+                <select id="type" th:field="*{type}" data-assignment-type>
+                    <option th:each="assignmentType : ${assignmentTypes}"
+                            th:value="${assignmentType}"
+                            th:text="${assignmentType.label}">
+                    </option>
+                </select>
+                <small class="form-error" th:errors="*{type}"></small>
             </div>
-        </form>
-    </main>
-</div>
 
-<script th:src="@{/js/assignment-form.js}"></script>
+            <div class="form-field">
+                <label for="assignedAt">Fecha de asignación</label>
+                <input id="assignedAt" type="date" th:field="*{assignedAt}" required>
+                <small class="form-error" th:errors="*{assignedAt}"></small>
+            </div>
+
+            <div class="form-field is-hidden" data-due-date-field>
+                <label for="dueAt">Vencimiento</label>
+                <input id="dueAt" type="date" th:field="*{dueAt}" data-due-date>
+                <small class="form-error" th:errors="*{dueAt}"></small>
+            </div>
+
+            <div class="form-field full-width">
+                <label for="observations">Observaciones</label>
+                <textarea id="observations" th:field="*{observations}" maxlength="2000"></textarea>
+                <small class="form-error" th:errors="*{observations}"></small>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <a class="secondary-button" th:href="@{/phones/{phoneId}(phoneId=${phoneId})}">Cancelar</a>
+            <button class="primary-button" type="submit">Guardar asignación</button>
+        </div>
+    </form>
+</main>
+
+<script th:src="@{/js/assignment-form.js}" defer></script>
 </body>
 </html>

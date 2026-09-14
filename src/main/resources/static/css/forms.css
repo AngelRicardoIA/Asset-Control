@@ -122,7 +122,7 @@
 }
 
 .primary-button {
-    background: var(--accent);
+    background: #d93838;
     box-shadow: 0 0.5rem 1rem rgba(204, 44, 44, 0.24);
     color: #fff;
 }
@@ -138,13 +138,15 @@
 }
 
 .computer-list,
-.site-list {
+.site-list,
+.phone-list {
     display: grid;
     gap: 0.8rem;
 }
 
 .computer-item,
-.site-item {
+.site-item,
+.phone-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -154,7 +156,21 @@
     padding: 1rem 1.1rem;
 }
 
+.computer-item,
+.phone-item {
+    color: inherit;
+    text-decoration: none;
+    transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.computer-item:hover,
+.phone-item:hover {
+    box-shadow: var(--shadow-raised);
+    transform: translateY(-2px);
+}
+
 .computer-main-data,
+.phone-main-data,
 .site-item div {
     display: grid;
     gap: 0.2rem;
@@ -162,6 +178,8 @@
 
 .computer-main-data span,
 .computer-main-data small,
+.phone-main-data span,
+.phone-main-data small,
 .site-item p {
     color: var(--text-muted);
 }
@@ -224,35 +242,6 @@
     font-weight: 700;
 }
 
-@media (max-width: 760px) {
-    .page-heading,
-    .computer-item,
-    .site-item {
-        align-items: stretch;
-        flex-direction: column;
-    }
-
-    .filter-panel,
-    .field-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .form-actions {
-        flex-direction: column-reverse;
-    }
-
-    .form-actions a,
-    .form-actions button {
-        width: 100%;
-    }
-
-}
-
- .primary-button {
-        background: #d93838;
-        color: #ffffff;
- }
-
 .field-help {
     margin: 0;
     color: var(--text-muted);
@@ -274,17 +263,6 @@
 
 .inline-site-creation .form-field {
     margin-top: 1rem;
-}
-
-.computer-item {
-    color: inherit;
-    text-decoration: none;
-    transition: transform 160ms ease, box-shadow 160ms ease;
-}
-
-.computer-item:hover {
-    box-shadow: var(--shadow-raised);
-    transform: translateY(-2px);
 }
 
 .detail-grid {
@@ -314,12 +292,6 @@
 .detail-notes p {
     color: var(--text-muted);
     margin-bottom: 0;
-}
-
-@media (max-width: 760px) {
-    .detail-grid {
-        grid-template-columns: 1fr;
-    }
 }
 
 .page-actions {
@@ -381,23 +353,12 @@
     font-weight: 700;
 }
 
-@media (max-width: 760px) {
-    .page-actions,
-    .assignment-item {
-        align-items: stretch;
-        flex-direction: column;
-    }
-
-    .assignment-status {
-        justify-items: start;
-    }
-}
-
 .is-hidden {
     display: none !important;
 }
 
-.computer-users {
+.computer-users,
+.phone-users {
     display: flex;
     flex-wrap: wrap;
     gap: 0.3rem;
@@ -405,7 +366,8 @@
     font-size: 0.85rem;
 }
 
-.computer-users strong {
+.computer-users strong,
+.phone-users strong {
     color: var(--text-primary);
 }
 
@@ -438,13 +400,8 @@
     color: var(--text-muted);
 }
 
-@media (max-width: 760px) {
-    .maintenance-item {
-        flex-direction: column;
-    }
-}
-
-.computer-last-user {
+.computer-last-user,
+.phone-last-user {
     display: flex;
     flex-wrap: wrap;
     gap: 0.3rem;
@@ -452,7 +409,8 @@
     font-size: 0.85rem;
 }
 
-.computer-last-user strong {
+.computer-last-user strong,
+.phone-last-user strong {
     color: var(--text-primary);
 }
 
@@ -473,4 +431,65 @@
     padding: 0.5rem 0.8rem;
     font-size: 0.85rem;
     line-height: 1.2;
+}
+
+.alert {
+    padding: 1rem;
+    border-radius: 0.8rem;
+    margin-bottom: 1.5rem;
+    font-weight: 700;
+}
+
+.alert--success {
+    background: rgba(45, 154, 91, 0.16);
+    color: #217445;
+}
+
+.alert--error {
+    background: rgba(166, 55, 55, 0.16);
+    color: #943838;
+}
+
+.status-text-available { color: #217445; }
+.status-text-assigned { color: #2456a8; }
+.status-text-loaned { color: #9f5709; }
+.status-text-retired { color: #943838; }
+
+@media (max-width: 760px) {
+    .page-heading,
+    .computer-item,
+    .phone-item,
+    .site-item {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .filter-panel,
+    .field-grid,
+    .detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .form-actions {
+        flex-direction: column-reverse;
+    }
+
+    .form-actions a,
+    .form-actions button {
+        width: 100%;
+    }
+
+    .page-actions,
+    .assignment-item {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .assignment-status {
+        justify-items: start;
+    }
+
+    .maintenance-item {
+        flex-direction: column;
+    }
 }
