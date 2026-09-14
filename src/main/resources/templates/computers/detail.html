@@ -129,18 +129,21 @@
                             th:text="${'Devuelto: ' + #temporals.format(assignment.returnedAt, 'dd/MM/yyyy')}"
                     >Devuelto</small>
 
-                    <a
-                            class="primary-button"
-                            th:href="@{/computers/{computerId}/assignments/{assignmentId}/responsiva.docx(computerId=${computer.id}, assignmentId=${assignment.id})}"
-                    >Generar y descargar responsiva</a>
+                    <div class="assignment-actions" th:if="${assignment.active}">
+                        <a
+                                class="primary-button"
+                                title="Generar y descargar responsiva en Word"
+                                th:href="@{/computers/{computerId}/assignments/{assignmentId}/responsiva.docx(computerId=${computer.id}, assignmentId=${assignment.id})}"
+                        >Responsiva</a>
 
-                    <form
-                            th:if="${assignment.active}"
-                            th:action="@{/computers/{computerId}/assignments/{assignmentId}/close(computerId=${computer.id}, assignmentId=${assignment.id})}"
-                            method="post"
-                    >
-                        <button class="secondary-button" type="submit">Devolver</button>
-                    </form>
+                        <form
+                                th:action="@{/computers/{computerId}/assignments/{assignmentId}/close(computerId=${computer.id}, assignmentId=${assignment.id})}"
+                                th:attr="data-confirm-return=${'¿Confirmas la devolución de ' + computer.host + ' por parte de ' + assignment.person.username + '?'}"
+                                method="post"
+                        >
+                            <button class="secondary-button" type="submit">Devolver</button>
+                        </form>
+                    </div>
 
                 </div>
             </article>

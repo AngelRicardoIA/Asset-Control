@@ -29,6 +29,7 @@ public class AssignmentResponsivaService {
     public GeneratedResponsiva generate(Long computerId, Long assignmentId) {
         var assignment = assignmentRepository.findDetailedById(assignmentId)
                 .filter(value -> value.getComputer().getId().equals(computerId))
+                .filter(value -> value.isActive())
                 .orElseThrow(() -> new AssignmentNotFoundException(assignmentId));
 
         var person = assignment.getPerson();

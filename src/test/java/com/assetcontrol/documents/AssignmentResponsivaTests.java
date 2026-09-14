@@ -175,6 +175,7 @@ class AssignmentResponsivaTests {
         var person = mock(Person.class, withSettings().mockMaker(MockMakers.SUBCLASS));
         when(repository.findDetailedById(41L)).thenReturn(Optional.of(assignment));
         when(assignment.getId()).thenReturn(41L);
+        when(assignment.isActive()).thenReturn(true);
         when(assignment.getComputer()).thenReturn(computer);
         when(assignment.getPerson()).thenReturn(person);
         when(assignment.getAssignedAt()).thenReturn(LocalDate.of(2026, 9, 14));
