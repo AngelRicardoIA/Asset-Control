@@ -84,7 +84,7 @@
         </article>
     </section>
 
-    <section class="form-panel assignment-history">
+    <section id="asignaciones" class="form-panel assignment-history">
         <div class="section-heading">
             <div>
                 <h2>Asignaciones e historial</h2>
@@ -98,7 +98,8 @@
         </div>
 
         <div class="assignment-list" th:unless="${#lists.isEmpty(assignments)}">
-            <article class="assignment-item" th:each="assignment : ${assignments}">
+            <article class="assignment-item" th:each="assignment : ${assignments}"
+                     th:id="${'asignacion-' + assignment.id}">
                 <div class="assignment-person">
                     <strong th:text="${assignment.person.fullName}">Nombre completo</strong>
                     <span th:text="${assignment.person.username + ' · ' + assignment.person.fullName}">ID · correo</span>
@@ -127,6 +128,11 @@
                             th:if="${!assignment.active}"
                             th:text="${'Devuelto: ' + #temporals.format(assignment.returnedAt, 'dd/MM/yyyy')}"
                     >Devuelto</small>
+
+                    <a
+                            class="primary-button"
+                            th:href="@{/computers/{computerId}/assignments/{assignmentId}/responsiva.docx(computerId=${computer.id}, assignmentId=${assignment.id})}"
+                    >Generar y descargar responsiva</a>
 
                     <form
                             th:if="${assignment.active}"

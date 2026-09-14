@@ -60,8 +60,8 @@ public class ComputerAssignmentController {
         }
 
         try {
-            assignmentService.create(assignmentForm.toCommand(computerId));
-            return "redirect:/computers/" + computerId;
+            var savedAssignment = assignmentService.create(assignmentForm.toCommand(computerId));
+            return "redirect:/computers/" + computerId + "#asignacion-" + savedAssignment.getId();
         } catch (DuplicateActiveAssignmentException exception) {
             bindingResult.rejectValue(
                     "personId",

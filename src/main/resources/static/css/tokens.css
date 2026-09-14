@@ -33,3 +33,11 @@
     margin-top: 2rem;
     padding-top: 1.5rem;
 }
+
+:root {
+    color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+    color-scheme: dark;
+}

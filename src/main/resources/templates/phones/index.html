@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/phone-document-head :: phoneDocumentHead('Teléfonos')}"></head>
+<body>
+<div class="app-shell">
+    <header th:replace="~{fragments/phone-navigation :: phoneNavigation('phones')}"></header>
+
+    <main class="phone-page">
+        <section class="phone-page-header">
+            <div>
+                <p class="phone-eyebrow">Inventario</p>
+                <h1>Teléfonos</h1>
+                <p>Equipos móviles y líneas disponibles.</p>
+            </div>
+
+            <a class="phone-button phone-button--primary" th:href="@{/phones/new}">
+                Nuevo teléfono
+            </a>
+        </section>
+
+        <p class="phone-alert phone-alert--success"
+           th:if="${successMessage}"
+           th:text="${successMessage}">
+        </p>
+
+        <p class="phone-alert phone-alert--error"
+           th:if="${errorMessage}"
+           th:text="${errorMessage}">
+        </p>
+
+        <section class="phone-list" th:if="${!#lists.isEmpty(phones)}">
+            <article class="phone-card" th:each="phone : ${phones}">
+                <div>
+                    <a class="phone-card__title"
+                       th:href="@{/phones/{phoneId}(phoneId=${phone.id})}"
+                       th:text="${phone.phoneLine != null ? phone.phoneLine.number : phone.imei}">
+                    </a>
+
+                    <p th:text="${phone.brand + ' ' + phone.model}"></p>
+                    <p th:text="${'IMEI: ' + phone.imei + ' · ' + phone.site.name}"></p>
+
+                    <p th:with="assignment=${primaryAssignmentsByPhoneId.get(phone.id)}"
+                       th:if="${assignment != null}">
+                        Usuario:
+                        <strong th:text="${assignment.person.username}"></strong>
+                    </p>
+
+                    <p th:if="${primaryAssignmentsByPhoneId.get(phone.id) == null}">
+                        Sin usuario asignado
+                    </p>
+                </div>
+
+                <span class="phone-status"
+                      th:classappend="${' phone-status--' + #strings.toLowerCase(phone.status.name())}"
+                      th:text="${phone.status.label}">
+                </span>
+            </article>
+        </section>
+
+        <section class="phone-empty-state" th:if="${#lists.isEmpty(phones)}">
+            <h2>No hay teléfonos registrados</h2>
+            <p>Registra el primer teléfono para comenzar el inventario móvil.</p>
+        </section>
+    </main>
+</div>
+</body>
+</html>

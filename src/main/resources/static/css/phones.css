@@ -1,0 +1,341 @@
+.phone-navigation {
+    align-items: center;
+    background: #eef2f7;
+    box-shadow: 8px 8px 18px #c9d0dc, -8px -8px 18px #ffffff;
+    display: flex;
+    gap: 1.5rem;
+    justify-content: space-between;
+    margin: 1.5rem auto;
+    max-width: 1180px;
+    padding: 1rem 1.25rem;
+    width: calc(100% - 3rem);
+}
+
+.phone-navigation__brand {
+    color: #1e293b;
+    font-size: 1.1rem;
+    font-weight: 800;
+    text-decoration: none;
+}
+
+.phone-navigation__links {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.phone-navigation__links a {
+    border-radius: 0.8rem;
+    color: #526072;
+    padding: 0.55rem 0.8rem;
+    text-decoration: none;
+}
+
+.phone-navigation__links a.is-active,
+.phone-navigation__links a:hover {
+    color: #b42330;
+    font-weight: 700;
+}
+
+.phone-navigation__theme {
+    background: #eef2f7;
+    border: 0;
+    box-shadow: 4px 4px 9px #c9d0dc, -4px -4px 9px #ffffff;
+    color: #1e293b;
+    cursor: pointer;
+    padding: 0.6rem 0.85rem;
+}
+
+.phone-page {
+    margin: 0 auto 3rem;
+    max-width: 1180px;
+    padding: 0 1.5rem;
+}
+
+.phone-page-header {
+    align-items: center;
+    display: flex;
+    gap: 1.5rem;
+    justify-content: space-between;
+    margin: 2rem 0;
+}
+
+.phone-page-header h1 {
+    color: #1e293b;
+    margin: 0.2rem 0;
+}
+
+.phone-page-header p {
+    color: #64748b;
+    margin: 0;
+}
+
+.phone-eyebrow {
+    color: #b42330;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.phone-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.phone-button {
+    border: 0;
+    cursor: pointer;
+    display: inline-block;
+    font: inherit;
+    padding: 0.7rem 1rem;
+    text-decoration: none;
+}
+
+.phone-button--primary {
+    background: #b42330;
+    box-shadow: 5px 5px 10px #9a1e29, -5px -5px 10px #d94b58;
+    color: #ffffff;
+}
+
+.phone-button--secondary {
+    background: #eef2f7;
+    box-shadow: 5px 5px 10px #c9d0dc, -5px -5px 10px #ffffff;
+    color: #334155;
+}
+
+.phone-alert {
+    margin: 1rem 0;
+    padding: 0.9rem 1rem;
+}
+
+.phone-alert--success {
+    background: #dff7e8;
+    color: #176b3a;
+}
+
+.phone-alert--error {
+    background: #ffe1e4;
+    color: #9e1c2a;
+}
+
+.phone-list {
+    display: grid;
+    gap: 1rem;
+}
+
+.phone-card {
+    align-items: center;
+    background: #eef2f7;
+    box-shadow: 8px 8px 18px #c9d0dc, -8px -8px 18px #ffffff;
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+    padding: 1.25rem;
+}
+
+.phone-card__title {
+    color: #1e293b;
+    font-size: 1.1rem;
+    font-weight: 800;
+    text-decoration: none;
+}
+
+.phone-card p {
+    color: #526072;
+    margin: 0.35rem 0 0;
+}
+
+.phone-status {
+    font-size: 0.85rem;
+    font-weight: 800;
+    padding: 0.45rem 0.7rem;
+    white-space: nowrap;
+}
+
+.phone-status--available {
+    background: #dff7e8;
+    color: #176b3a;
+}
+
+.phone-status--assigned {
+    background: #dce8ff;
+    color: #1e5bb8;
+}
+
+.phone-status--loaned {
+    background: #fff0cd;
+    color: #9a6100;
+}
+
+.phone-status--retired {
+    background: #f2dce0;
+    color: #8d2632;
+}
+
+.phone-form,
+.phone-panel {
+    background: #eef2f7;
+    box-shadow: 8px 8px 18px #c9d0dc, -8px -8px 18px #ffffff;
+    padding: 1.5rem;
+}
+
+.phone-form-grid,
+.phone-detail-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.phone-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.phone-field--full {
+    grid-column: 1 / -1;
+}
+
+.phone-field label,
+.phone-panel h2 {
+    color: #334155;
+    font-weight: 800;
+}
+
+.phone-field input,
+.phone-field select,
+.phone-field textarea {
+    background: #eef2f7;
+    border: 0;
+    box-shadow: inset 3px 3px 7px #c9d0dc, inset -3px -3px 7px #ffffff;
+    color: #1e293b;
+    font: inherit;
+    padding: 0.75rem;
+}
+
+.phone-field textarea {
+    min-height: 110px;
+    resize: vertical;
+}
+
+.phone-error {
+    color: #b42330;
+    margin: 0;
+}
+
+.phone-form-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+    margin-top: 1.5rem;
+}
+
+.phone-detail-grid {
+    margin-bottom: 1rem;
+}
+
+.phone-panel dl {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: minmax(120px, 0.4fr) 1fr;
+    margin: 0;
+}
+
+.phone-panel dt {
+    color: #64748b;
+    font-weight: 700;
+}
+
+.phone-panel dd {
+    color: #1e293b;
+    margin: 0;
+}
+
+.phone-assignment {
+    border-top: 1px solid #cbd5e1;
+    padding: 0.9rem 0;
+}
+
+.phone-assignment:first-of-type {
+    border-top: 0;
+}
+
+.phone-empty-state {
+    background: #eef2f7;
+    box-shadow: 8px 8px 18px #c9d0dc, -8px -8px 18px #ffffff;
+    padding: 2rem;
+    text-align: center;
+}
+
+:root[data-theme="dark"] .phone-navigation,
+:root[data-theme="dark"] .phone-card,
+:root[data-theme="dark"] .phone-form,
+:root[data-theme="dark"] .phone-panel,
+:root[data-theme="dark"] .phone-empty-state {
+    background: #1d2430;
+    box-shadow: 8px 8px 18px #121720, -8px -8px 18px #293241;
+}
+
+:root[data-theme="dark"] .phone-navigation__brand,
+:root[data-theme="dark"] .phone-navigation__theme,
+:root[data-theme="dark"] .phone-page-header h1,
+:root[data-theme="dark"] .phone-card__title,
+:root[data-theme="dark"] .phone-field label,
+:root[data-theme="dark"] .phone-panel h2,
+:root[data-theme="dark"] .phone-panel dd {
+    color: #edf2f7;
+}
+
+:root[data-theme="dark"] .phone-navigation__links a,
+:root[data-theme="dark"] .phone-page-header p,
+:root[data-theme="dark"] .phone-card p,
+:root[data-theme="dark"] .phone-panel dt {
+    color: #b8c2d1;
+}
+
+:root[data-theme="dark"] .phone-navigation__theme,
+:root[data-theme="dark"] .phone-button--secondary,
+:root[data-theme="dark"] .phone-field input,
+:root[data-theme="dark"] .phone-field select,
+:root[data-theme="dark"] .phone-field textarea {
+    background: #1d2430;
+    box-shadow: inset 3px 3px 7px #121720, inset -3px -3px 7px #293241;
+    color: #edf2f7;
+}
+
+:root[data-theme="dark"] .phone-assignment {
+    border-color: #3a4658;
+}
+
+@media (max-width: 760px) {
+    .phone-navigation,
+    .phone-page-header,
+    .phone-card {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .phone-navigation__links {
+        flex-wrap: wrap;
+    }
+
+    .phone-form-grid,
+    .phone-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .phone-field--full {
+        grid-column: auto;
+    }
+
+    .phone-form-actions {
+        justify-content: stretch;
+    }
+
+    .phone-form-actions .phone-button {
+        text-align: center;
+        width: 100%;
+    }
+}

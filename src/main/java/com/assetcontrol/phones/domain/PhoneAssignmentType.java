@@ -1,14 +1,12 @@
 package com.assetcontrol.phones.domain;
 
-public enum PhoneStatus {
-    AVAILABLE("Disponible"),
-    ASSIGNED("Asignado"),
-    LOANED("Préstamo"),
-    RETIRED("Baja");
+public enum PhoneAssignmentType {
+    ASSIGNMENT("Asignación"),
+    LOAN("Préstamo");
 
     private final String label;
 
-    PhoneStatus(String label) {
+    PhoneAssignmentType(String label) {
         this.label = label;
     }
 

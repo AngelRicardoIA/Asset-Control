@@ -188,14 +188,14 @@ public class ComputerController {
         }
 
         try {
-            registrationService.register(new RegisterComputerCommand(
+            Computer savedComputer = registrationService.register(new RegisterComputerCommand(
                     computerForm.toCommand(),
                     computerForm.getInitialAssignment().hasData()
                             ? computerForm.getInitialAssignment().toCommand(null)
                             : null
             ));
 
-            return "redirect:/computers";
+            return "redirect:/computers/" + savedComputer.getId() + "#asignaciones";
         } catch (DuplicateComputerFieldException exception) {
             String message = exception.getField().equals("asset")
                     ? "Ya existe un equipo con este asset."

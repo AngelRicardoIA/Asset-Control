@@ -1,0 +1,31 @@
+<header xmlns:th="http://www.thymeleaf.org"
+        th:fragment="phoneNavigation(activeSection)"
+        class="phone-navigation">
+
+    <a class="phone-navigation__brand" th:href="@{/}">
+        Asset-Control
+    </a>
+
+    <nav class="phone-navigation__links">
+        <a th:href="@{/}"
+           th:classappend="${activeSection == 'dashboard'} ? ' is-active' : ''">
+            Inicio
+        </a>
+
+        <a th:href="@{/computers}"
+           th:classappend="${activeSection == 'computers'} ? ' is-active' : ''">
+            Equipos
+        </a>
+
+        <a th:href="@{/phones}"
+           th:classappend="${activeSection == 'phones'} ? ' is-active' : ''">
+            Teléfonos
+        </a>
+    </nav>
+
+    <button class="phone-navigation__theme"
+            type="button"
+            data-theme-toggle>
+        Tema
+    </button>
+</header>

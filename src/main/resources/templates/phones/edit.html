@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/phone-document-head :: phoneDocumentHead('Editar teléfono')}"></head>
+<body>
+<div class="app-shell">
+    <header th:replace="~{fragments/phone-navigation :: phoneNavigation('phones')}"></header>
+
+    <main class="phone-page">
+        <section class="phone-page-header">
+            <div>
+                <p class="phone-eyebrow">Teléfonos</p>
+                <h1>Editar teléfono</h1>
+                <p>Puedes liberar una línea, elegir otra disponible o registrar una nueva.</p>
+            </div>
+        </section>
+
+        <form class="phone-form"
+              th:action="@{/phones/{phoneId}(phoneId=${phoneId})}"
+              th:object="${form}"
+              method="post">
+
+            <p class="phone-alert phone-alert--error"
+               th:if="${#fields.hasGlobalErrors()}"
+               th:errors="*{global}">
+            </p>
+
+            <div class="phone-form-grid">
+                <div class="phone-field">
+                    <label for="imei">IMEI</label>
+                    <input id="imei" th:field="*{imei}" maxlength="32" required>
+                    <p class="phone-error" th:errors="*{imei}"></p>
+                </div>
+
+                <div class="phone-field">
+                    <label for="brand">Marca</label>
+                    <input id="brand" th:field="*{brand}" maxlength="100" required>
+                    <p class="phone-error" th:errors="*{brand}"></p>
+                </div>
+
+                <div class="phone-field">
+                    <label for="model">Modelo</label>
+                    <input id="model" th:field="*{model}" maxlength="100" required>
+                    <p class="phone-error" th:errors="*{model}"></p>
+                </div>
+
+                <div class="phone-field">
+                    <label for="status">Estado</label>
+                    <select id="status" th:field="*{status}">
+                        <option th:each="phoneStatus : ${phoneStatuses}"
+                                th:value="${phoneStatus}"
+                                th:text="${phoneStatus.label}">
+                        </option>
+                    </select>
+                </div>
+
+                <div class="phone-field">
+                    <label for="siteId">Ubicación</label>
+                    <select id="siteId" th:field="*{siteId}">
+                        <option value="">Selecciona una ubicación</option>
+                        <option th:each="site : ${sites}"
+                                th:value="${site.id}"
+                                th:text="${site.name}">
+                        </option>
+                    </select>
+                </div>
+
+                <div class="phone-field">
+                    <label for="newSiteName">O agrega una ubicación</label>
+                    <input id="newSiteName" th:field="*{newSiteName}" maxlength="100">
+                </div>
+
+                <div class="phone-field">
+                    <label for="phoneLineId">Línea actual o disponible</label>
+                    <select id="phoneLineId" th:field="*{phoneLineId}">
+                        <option value="">Sin línea</option>
+                        <option th:each="phoneLine : ${phoneLines}"
+                                th:value="${phoneLine.id}"
+                                th:text="${phoneLine.number + (phoneLine.carrier != null ? ' · ' + phoneLine.carrier : '')}">
+                        </option>
+                    </select>
+                </div>
+
+                <div class="phone-field">
+                    <label for="newLineNumber">O registra una línea nueva</label>
+                    <input id="newLineNumber" th:field="*{newLineNumber}" maxlength="30">
+                </div>
+
+                <div class="phone-field">
+                    <label for="newLineCarrier">Proveedor</label>
+                    <input id="newLineCarrier" th:field="*{newLineCarrier}" maxlength="100">
+                </div>
+
+                <div class="phone-field phone-field--full">
+                    <label for="observations">Observaciones</label>
+                    <textarea id="observations" th:field="*{observations}" maxlength="2000"></textarea>
+                    <p class="phone-error" th:errors="*{observations}"></p>
+                </div>
+            </div>
+
+            <div class="phone-form-actions">
+                <a class="phone-button phone-button--secondary"
+                   th:href="@{/phones/{phoneId}(phoneId=${phoneId})}">
+                    Cancelar
+                </a>
+
+                <button class="phone-button phone-button--primary" type="submit">
+                    Guardar cambios
+                </button>
+            </div>
+        </form>
+    </main>
+</div>
+</body>
+</html>

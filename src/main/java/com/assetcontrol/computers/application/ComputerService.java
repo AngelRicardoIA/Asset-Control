@@ -125,22 +125,19 @@ public class ComputerService {
         return computer;
     }
 
-    private void applyStatusTransition(
-            Computer computer,
-            ComputerStatus requestedStatus
-    ) {
-        if (requestedStatus == computer.getStatus()) {
+    private void applyStatusTransition(Computer computer, ComputerStatus requestedStatus) {
+        if (requestedStatus == null || requestedStatus == computer.getStatus()) {
             return;
         }
 
-        if (requestedStatus == ComputerStatus.RETIRED) {
-            computer.changeStatus(ComputerStatus.RETIRED);
+        if (requestedStatus == ComputerStatus.AVAILABLE
+                || requestedStatus == ComputerStatus.RETIRED) {
+            computer.changeStatus(requestedStatus);
             return;
         }
 
         throw new IllegalArgumentException(
-                "Asignado y Préstamo se controlan mediante movimientos. "
-                        + "Primero devuelve las asignaciones activas."
+                "Asignado y Préstamo solo se establecen mediante una asignación."
         );
     }
 }
