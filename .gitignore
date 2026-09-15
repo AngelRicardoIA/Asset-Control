@@ -36,3 +36,5 @@ build/
 asset-control.db
 asset-control.db-shm
 asset-control.db-wal
+
+/config/*.properties

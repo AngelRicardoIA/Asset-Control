@@ -1,0 +1,143 @@
+.label-dialog {
+    width: min(640px, calc(100% - 2rem));
+    max-height: calc(100dvh - 2rem);
+    padding: 1.75rem;
+    border: 0;
+    border-radius: var(--radius-large);
+    background: var(--color-surface);
+    color: var(--color-text);
+    box-shadow: var(--shadow-raised), 0 24px 80px rgb(0 0 0 / 22%);
+    overflow-y: auto;
+}
+
+.label-dialog::backdrop {
+    background: rgb(12 16 24 / 48%);
+    backdrop-filter: blur(5px);
+}
+
+body:has(.label-dialog[open]) {
+    overflow: hidden;
+}
+
+.label-dialog__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.label-dialog__header h2 {
+    margin: 0;
+    font-size: 1.55rem;
+    letter-spacing: -0.04em;
+}
+
+.label-dialog .eyebrow {
+    color: var(--color-accent);
+    margin-bottom: 0.5rem;
+}
+
+.label-dialog__close {
+    display: grid;
+    flex-shrink: 0;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 0;
+    border-radius: 13px;
+    background: var(--color-surface);
+    color: var(--color-text);
+    box-shadow: var(--shadow-raised-small);
+    cursor: pointer;
+}
+
+.label-dialog__close svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+}
+
+.label-dialog__description {
+    margin: 1rem 0 1.5rem;
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    line-height: 1.55;
+}
+
+.label-dialog__fields {
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    margin: 0;
+}
+
+.label-dialog .form-field input,
+.label-dialog .secondary-button,
+.assignment-actions .secondary-button {
+    background: var(--color-surface);
+    color: var(--color-text);
+}
+
+.label-dialog .secondary-button,
+.assignment-actions .secondary-button {
+    box-shadow: var(--shadow-raised-small);
+}
+
+.label-dialog :is(input, button):focus-visible,
+.assignment-actions :is(a, button):focus-visible {
+    outline: 3px solid var(--color-action-blue);
+    outline-offset: 4px;
+}
+
+.label-dialog__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 1.75rem;
+}
+
+.label-dialog__message {
+    padding: 0.85rem 1rem;
+    margin: 0 0 1.25rem;
+    border-radius: 0.8rem;
+    box-shadow: var(--shadow-pressed);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.label-dialog__message[data-state="error"] {
+    color: var(--color-accent);
+}
+
+.label-dialog__message[data-state="success"] {
+    color: #217445;
+}
+
+:root[data-theme="dark"] .label-dialog__message[data-state="success"] {
+    color: #8bdda9;
+}
+
+.label-dialog button:disabled {
+    opacity: 0.65;
+    cursor: wait;
+}
+
+@media (max-width: 560px) {
+    .label-dialog {
+        padding: 1.25rem;
+        border-radius: var(--radius-medium);
+    }
+
+    .label-dialog__actions {
+        flex-wrap: wrap;
+    }
+
+    .label-dialog__actions button {
+        flex: 1;
+    }
+}

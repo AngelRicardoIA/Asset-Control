@@ -136,6 +136,12 @@
                                 th:href="@{/computers/{computerId}/assignments/{assignmentId}/responsiva.docx(computerId=${computer.id}, assignmentId=${assignment.id})}"
                         >Responsiva</a>
 
+                        <button class="secondary-button" type="button" data-label-open
+                                aria-haspopup="dialog" aria-controls="assignment-label-dialog"
+                                th:attr="data-label-url=@{/computers/{computerId}/assignments/{assignmentId}/label(computerId=${computer.id}, assignmentId=${assignment.id})}">
+                            Etiqueta
+                        </button>
+
                         <form
                                 th:action="@{/computers/{computerId}/assignments/{assignmentId}/close(computerId=${computer.id}, assignmentId=${assignment.id})}"
                                 th:attr="data-confirm-return=${'¿Confirmas la devolución de ' + computer.host + ' por parte de ' + assignment.person.username + '?'}"
@@ -183,5 +189,6 @@
         </p>
     </section>
 </main>
+<th:block th:replace="~{fragments/assignment-label-dialog :: dialog}"></th:block>
 </body>
 </html>

@@ -1,0 +1,62 @@
+<dialog th:fragment="dialog" xmlns:th="http://www.thymeleaf.org"
+        id="assignment-label-dialog" class="label-dialog"
+        aria-labelledby="label-dialog-title" aria-describedby="label-dialog-description">
+    <div class="label-dialog__header">
+        <div>
+            <p class="eyebrow">Impresión</p>
+            <h2 id="label-dialog-title">Etiqueta del equipo</h2>
+        </div>
+        <button class="label-dialog__close" type="button" data-label-close aria-label="Cerrar ventana">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+        </button>
+    </div>
+
+    <p class="label-dialog__description" id="label-dialog-description">
+        Revisa los datos antes de imprimir. Los cambios de esta ventana solo se aplican a la etiqueta.
+    </p>
+
+    <p class="label-dialog__message" data-label-message role="status" aria-live="polite" hidden></p>
+
+    <form data-label-form autocomplete="off">
+        <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}"
+               th:value="${_csrf.token}" th:attr="data-csrf-header=${_csrf.headerName}">
+
+        <fieldset class="label-dialog__fields field-grid" data-label-fields>
+            <div class="form-field full-width">
+                <label for="label-printer-ip">IP de la impresora</label>
+                <input id="label-printer-ip" name="printerIp" inputmode="decimal" maxlength="15"
+                       spellcheck="false" required>
+            </div>
+
+            <div class="form-field full-width">
+                <label for="label-full-name">Nombre del usuario</label>
+                <input id="label-full-name" name="fullName" maxlength="100" required>
+            </div>
+
+            <div class="form-field">
+                <label for="label-asset">Asset</label>
+                <input id="label-asset" name="asset" maxlength="100" spellcheck="false" required>
+            </div>
+
+            <div class="form-field">
+                <label for="label-host">HOST</label>
+                <input id="label-host" name="host" maxlength="100" spellcheck="false" required>
+            </div>
+
+            <div class="form-field">
+                <label for="label-model">Modelo</label>
+                <input id="label-model" name="model" maxlength="100" required>
+            </div>
+
+            <div class="form-field">
+                <label for="label-serial-number">Número de serie</label>
+                <input id="label-serial-number" name="serialNumber" maxlength="100" spellcheck="false" required>
+            </div>
+        </fieldset>
+
+        <div class="label-dialog__actions">
+            <button class="secondary-button" type="button" data-label-close>Cerrar</button>
+            <button class="primary-button" type="submit" data-label-submit>Imprimir etiqueta</button>
+        </div>
+    </form>
+</dialog>
