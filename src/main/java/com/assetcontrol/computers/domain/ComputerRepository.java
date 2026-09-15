@@ -17,6 +17,8 @@ public interface ComputerRepository extends JpaRepository<Computer, Long> {
 
     boolean existsByHostIgnoreCaseAndIdNot(String host, Long id);
 
+    Optional<Computer> findByHostIgnoreCase(String host);
+
     @Query("""
         SELECT computer
         FROM Computer computer

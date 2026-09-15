@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="https://www.thymeleaf.org">
+<head th:replace="~{fragments/document-head :: head('Importar asignaciones')}"></head>
+<body>
+<header th:replace="~{fragments/app-header :: header}"></header>
+<main class="page-content">
+    <section class="page-heading">
+        <div>
+            <p class="eyebrow">Importación</p>
+            <h1 th:text="${kind.name() == 'COMPUTER' ? 'Importar asignaciones de equipos' : 'Importar asignaciones de teléfonos'}"></h1>
+            <p>El archivo se valida completo antes de modificar el inventario.</p>
+        </div>
+    </section>
+    <section class="form-panel">
+        <p class="alert alert--error" th:if="${errorMessage}" th:text="${errorMessage}"></p>
+        <p>Columnas obligatorias: <code th:text="${headers}"></code></p>
+        <p>Fechas: <code>yyyy-MM-dd</code>. Tipos: <code>ASSIGNMENT</code> o <code>LOAN</code>.</p>
+        <form th:action="${kind.name() == 'COMPUTER' ? '/assignment-imports/computers/preview' : '/assignment-imports/phones/preview'}" method="post" enctype="multipart/form-data">
+            <label for="file">Archivo CSV</label>
+            <input id="file" name="file" type="file" accept=".csv,text/csv" required>
+            <div class="form-actions"><button class="primary-button" type="submit">Validar archivo</button></div>
+        </form>
+        <div class="alert alert--success" th:if="${preview}">
+            <p th:text="${'Se validaron ' + preview.rows().size() + ' asignaciones.'}"></p>
+            <form th:action="@{/assignment-imports/confirm}" method="post">
+                <button class="primary-button" type="submit" th:text="${'¿Seguro que quieres importar ' + preview.rows().size() + ' asignaciones?'}"></button>
+            </form>
+        </div>
+    </section>
+</main>
+</body>
+</html>

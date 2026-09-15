@@ -17,6 +17,8 @@ public interface PhoneRepository extends JpaRepository<Phone, Long> {
 
     boolean existsByPhoneLineIdAndIdNot(Long phoneLineId, Long id);
 
+    Optional<Phone> findByImeiIgnoreCase(String imei);
+
     @Query("""
             SELECT phone
             FROM Phone phone

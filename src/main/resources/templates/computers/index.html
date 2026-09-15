@@ -11,7 +11,11 @@
             <h1>Equipos de cómputo</h1>
             <p>Consulta, filtra y administra laptops y equipos de escritorio.</p>
         </div>
-        <a class="primary-button" th:href="@{/computers/new}">Nuevo equipo</a>
+        <div class="page-actions">
+            <a class="secondary-button" th:href="@{/inventory/export}">Exportar</a>
+            <a class="secondary-button" th:href="@{/assignment-imports/computers}">Importar</a>
+            <a class="primary-button" th:href="@{/computers/new}">Nuevo equipo</a>
+        </div>
     </section>
 
     <form class="filter-panel" th:action="@{/computers}" method="get">

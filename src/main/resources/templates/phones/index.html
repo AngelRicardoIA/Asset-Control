@@ -11,7 +11,11 @@
             <h1>Teléfonos</h1>
             <p>Equipos móviles y líneas disponibles.</p>
         </div>
-        <a class="primary-button" th:href="@{/phones/new}">Nuevo teléfono</a>
+        <div class="page-actions">
+            <a class="secondary-button" th:href="@{/inventory/export}">Exportar</a>
+            <a class="secondary-button" th:href="@{/assignment-imports/phones}">Importar</a>
+            <a class="primary-button" th:href="@{/phones/new}">Nuevo teléfono</a>
+        </div>
     </section>
 
     <form class="filter-panel" th:action="@{/phones}" method="get">

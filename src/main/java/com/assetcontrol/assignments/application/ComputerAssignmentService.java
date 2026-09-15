@@ -154,6 +154,11 @@ public class ComputerAssignmentService {
         computer.changeStatus(ComputerStatus.AVAILABLE);
     }
 
+    @Transactional
+    public void refreshStatuses(Collection<Computer> computers) {
+        computers.forEach(this::synchronizeComputerStatus);
+    }
+
     private String normalizeOptional(String value) {
         if (value == null) {
             return null;

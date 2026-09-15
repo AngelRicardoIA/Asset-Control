@@ -175,6 +175,10 @@ public class PhoneAssignmentService {
         phone.changeStatus(hasLoan ? PhoneStatus.LOANED : PhoneStatus.ASSIGNED);
     }
 
+    public void refreshStatuses(Collection<Phone> phones) {
+        phones.forEach(this::synchronizePhoneStatus);
+    }
+
     private LocalDate resolveDueDate(
             PhoneAssignmentType type,
             LocalDate assignedAt,
