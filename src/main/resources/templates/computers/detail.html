@@ -131,7 +131,7 @@
 
                     <div class="assignment-actions" th:if="${assignment.active}">
                         <a
-                                class="primary-button"
+                                class="primary-button button-info"
                                 title="Generar y descargar responsiva en Word"
                                 th:href="@{/computers/{computerId}/assignments/{assignmentId}/responsiva.docx(computerId=${computer.id}, assignmentId=${assignment.id})}"
                         >Responsiva</a>
@@ -141,7 +141,7 @@
                                 th:attr="data-confirm-return=${'¿Confirmas la devolución de ' + computer.host + ' por parte de ' + assignment.person.username + '?'}"
                                 method="post"
                         >
-                            <button class="secondary-button" type="submit">Devolver</button>
+                            <button class="primary-button" type="submit">Devolver</button>
                         </form>
                     </div>
 

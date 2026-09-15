@@ -133,6 +133,15 @@
     color: var(--text-primary);
 }
 
+.primary-button.button-info {
+    background: var(--color-action-blue);
+    box-shadow: var(--shadow-raised-small);
+}
+
+.primary-button.button-info:hover {
+    background: var(--color-action-blue-hover);
+}
+
 .inventory-panel {
     padding: 1rem;
 }
@@ -417,6 +426,7 @@
 .assignment-actions {
     display: inline-flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 0.6rem;
     margin-top: 0.5rem;
 }
@@ -431,6 +441,7 @@
     padding: 0.5rem 0.8rem;
     font-size: 0.85rem;
     line-height: 1.2;
+    min-height: 2.25rem;
 }
 
 .alert {
