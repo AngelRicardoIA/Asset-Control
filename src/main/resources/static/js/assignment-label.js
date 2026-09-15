@@ -7,7 +7,7 @@
     const message = dialog.querySelector("[data-label-message]");
     const submitButton = dialog.querySelector("[data-label-submit]");
     const closeButtons = dialog.querySelectorAll("[data-label-close]");
-    const contentFields = ["fullName", "asset", "model", "serialNumber", "host"];
+    const contentFields = ["displayName", "asset", "model", "serialNumber", "host"];
     let endpoint = "";
     let opener = null;
     let loadingRequest = null;

@@ -1,0 +1,1 @@
+^FT56,132^A0N,35,35^FH_^FDAsset-Control^FS

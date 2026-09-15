@@ -12,15 +12,18 @@ public class AssignmentLabelService {
 
     private final ComputerAssignmentRepository assignmentRepository;
     private final LabelPrinter printer;
+    private final LabelUsernameFormatter usernameFormatter;
     private final String defaultPrinterIp;
 
     public AssignmentLabelService(
             ComputerAssignmentRepository assignmentRepository,
             LabelPrinter printer,
+            LabelUsernameFormatter usernameFormatter,
             @Value("${asset-control.labels.printer-ip:}") String defaultPrinterIp
     ) {
         this.assignmentRepository = assignmentRepository;
         this.printer = printer;
+        this.usernameFormatter = usernameFormatter;
         this.defaultPrinterIp = defaultPrinterIp;
     }
 
@@ -29,7 +32,7 @@ public class AssignmentLabelService {
         var assignment = findActiveAssignment(computerId, assignmentId);
         var computer = assignment.getComputer();
         return new PreparedLabel(defaultPrinterIp, new LabelContent(
-                assignment.getPerson().getFullName(),
+                usernameFormatter.format(assignment.getPerson().getUsername()),
                 computer.getAsset(),
                 computer.getModel(),
                 computer.getSerialNumber(),

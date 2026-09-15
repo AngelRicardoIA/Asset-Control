@@ -5,10 +5,10 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public record LabelContent(
-        @NotBlank(message = "Escribe el nombre del usuario.")
-        @Size(max = 100, message = "El nombre de la etiqueta admite hasta 100 caracteres.")
-        @Pattern(regexp = "[^\\p{Cntrl}]*", message = "El nombre no puede contener saltos de línea.")
-        String fullName,
+        @NotBlank(message = "Escribe el usuario mostrado en la etiqueta.")
+        @Size(max = 100, message = "El usuario de la etiqueta admite hasta 100 caracteres.")
+        @Pattern(regexp = "[^\\p{Cntrl}]*", message = "El usuario no puede contener saltos de línea.")
+        String displayName,
         @NotBlank(message = "Escribe el asset.")
         @Size(max = 100, message = "El asset admite hasta 100 caracteres.")
         @Pattern(regexp = "[^\\p{Cntrl}]*", message = "El asset no puede contener saltos de línea.")
