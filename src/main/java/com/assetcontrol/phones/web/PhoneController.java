@@ -1,9 +1,15 @@
 package com.assetcontrol.phones.web;
 
 import com.assetcontrol.phones.application.PhoneAssignmentService;
+import com.assetcontrol.phones.application.PhoneRegistrationService;
 import com.assetcontrol.phones.application.PhoneService;
+import com.assetcontrol.phones.application.RegisterPhoneWithAssignmentCommand;
 import com.assetcontrol.phones.domain.Phone;
+import com.assetcontrol.phones.domain.PhoneAssignmentType;
 import com.assetcontrol.phones.domain.PhoneStatus;
+import com.assetcontrol.phones.maintenance.application.PhoneMaintenanceService;
+import com.assetcontrol.people.application.DuplicatePersonIdentifierException;
+import com.assetcontrol.people.application.DuplicatePersonUsernameException;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -22,16 +28,22 @@ import java.util.List;
 public class PhoneController {
 
     private final PhoneService phoneService;
+    private final PhoneRegistrationService registrationService;
     private final PhoneAssignmentService phoneAssignmentService;
+    private final PhoneMaintenanceService maintenanceService;
     private final com.assetcontrol.sites.application.SiteService siteService;
 
     public PhoneController(
             PhoneService phoneService,
+            PhoneRegistrationService registrationService,
             PhoneAssignmentService phoneAssignmentService,
+            PhoneMaintenanceService maintenanceService,
             com.assetcontrol.sites.application.SiteService siteService
     ) {
         this.phoneService = phoneService;
+        this.registrationService = registrationService;
         this.phoneAssignmentService = phoneAssignmentService;
+        this.maintenanceService = maintenanceService;
         this.siteService = siteService;
     }
 
@@ -70,19 +82,49 @@ public class PhoneController {
         }
 
         try {
-            phoneService.register(form.toRegisterCommand());
+            validateInitialAssignment(form, bindingResult);
+
+            if (bindingResult.hasErrors()) {
+                addCreateFormOptions(model);
+                return "phones/new";
+            }
+
+            Phone phone = registrationService.register(
+                    new RegisterPhoneWithAssignmentCommand(
+                            form.toRegisterCommand(),
+                            form.getInitialAssignment().hasData()
+                                    ? form.getInitialAssignment().toCommand()
+                                    : null
+                    )
+            );
+
+            redirectAttributes.addFlashAttribute(
+                    "successMessage",
+                    "Teléfono registrado correctamente."
+            );
+
+            return "redirect:/phones/" + phone.getId() + "#asignaciones";
         } catch (IllegalArgumentException exception) {
             bindingResult.reject("phone", exception.getMessage());
             addCreateFormOptions(model);
             return "phones/new";
+        } catch (DuplicatePersonIdentifierException exception) {
+            bindingResult.rejectValue(
+                    "initialAssignment.newPersonExternalId",
+                    "person.identifier.duplicate",
+                    exception.getMessage()
+            );
+            addCreateFormOptions(model);
+            return "phones/new";
+        } catch (DuplicatePersonUsernameException exception) {
+            bindingResult.rejectValue(
+                    "initialAssignment.newPersonUsername",
+                    "person.username.duplicate",
+                    exception.getMessage()
+            );
+            addCreateFormOptions(model);
+            return "phones/new";
         }
-
-        redirectAttributes.addFlashAttribute(
-                "successMessage",
-                "Teléfono registrado correctamente."
-        );
-
-        return "redirect:/phones";
     }
 
     @GetMapping("/{phoneId}")
@@ -98,6 +140,14 @@ public class PhoneController {
         model.addAttribute(
                 "assignmentHistory",
                 phoneAssignmentService.findHistoryByPhoneId(phoneId)
+        );
+        model.addAttribute(
+                "maintenanceRecords",
+                maintenanceService.findByPhoneId(phoneId)
+        );
+        model.addAttribute(
+                "lastClosedAssignment",
+                phoneAssignmentService.findLastClosedByPhoneId(phoneId)
         );
 
         return "phones/detail";
@@ -152,6 +202,8 @@ public class PhoneController {
         model.addAttribute("sites", siteService.findAllActive());
         model.addAttribute("phoneLines", phoneService.findAvailablePhoneLines());
         model.addAttribute("phoneStatuses", PhoneStatus.values());
+        model.addAttribute("people", phoneAssignmentService.findPeople());
+        model.addAttribute("phoneAssignmentTypes", PhoneAssignmentType.values());
     }
 
     private void addEditFormOptions(Model model, Long phoneId) {
@@ -161,5 +213,41 @@ public class PhoneController {
                 phoneService.findSelectablePhoneLines(phoneId)
         );
         model.addAttribute("phoneStatuses", PhoneStatus.values());
+    }
+
+    private void validateInitialAssignment(
+            PhoneForm phoneForm,
+            BindingResult bindingResult
+    ) {
+        PhoneAssignmentForm assignment = phoneForm.getInitialAssignment();
+
+        if (!assignment.hasData()) {
+            return;
+        }
+
+        if (assignment.getPersonId() == null
+                && !assignment.hasCompleteNewPersonData()) {
+            bindingResult.rejectValue(
+                    "initialAssignment.personId",
+                    "assignment.person.required",
+                    "Selecciona una persona o completa los datos de una nueva."
+            );
+        }
+
+        if (assignment.getType() == null) {
+            bindingResult.rejectValue(
+                    "initialAssignment.type",
+                    "assignment.type.required",
+                    "Selecciona el tipo de movimiento."
+            );
+        }
+
+        if (assignment.getAssignedAt() == null) {
+            bindingResult.rejectValue(
+                    "initialAssignment.assignedAt",
+                    "assignment.date.required",
+                    "Selecciona la fecha de asignación."
+            );
+        }
     }
 }

@@ -51,6 +51,53 @@ public interface PhoneAssignmentRepository extends JpaRepository<PhoneAssignment
             FROM PhoneAssignment assignment
             JOIN FETCH assignment.phone
             JOIN FETCH assignment.person
+            WHERE assignment.phone.id IN :phoneIds
+            AND assignment.returnedAt IS NOT NULL
+            ORDER BY assignment.phone.id, assignment.returnedAt DESC, assignment.id DESC
+            """)
+    List<PhoneAssignment> findClosedByPhoneIdsWithPerson(
+            @Param("phoneIds") Collection<Long> phoneIds
+    );
+
+    @Query("""
+            SELECT assignment
+            FROM PhoneAssignment assignment
+            JOIN FETCH assignment.phone phone
+            JOIN FETCH phone.site
+            LEFT JOIN FETCH phone.phoneLine
+            JOIN FETCH assignment.person
+            WHERE assignment.person.id IN :personIds
+            AND assignment.returnedAt IS NULL
+            ORDER BY assignment.person.fullName, phone.imei
+            """)
+    List<PhoneAssignment> findActiveByPersonIdsWithPhone(
+            @Param("personIds") Collection<Long> personIds
+    );
+
+    @Query("""
+            SELECT DISTINCT assignment.person
+            FROM PhoneAssignment assignment
+            WHERE assignment.returnedAt IS NULL
+            AND (:siteId IS NULL OR assignment.phone.site.id = :siteId)
+            AND (
+                :query = ''
+                OR LOWER(assignment.person.username) LIKE LOWER(CONCAT('%', :query, '%'))
+                OR LOWER(assignment.person.fullName) LIKE LOWER(CONCAT('%', :query, '%'))
+                OR LOWER(assignment.person.externalId) LIKE LOWER(CONCAT('%', :query, '%'))
+                OR LOWER(assignment.person.email) LIKE LOWER(CONCAT('%', :query, '%'))
+            )
+            ORDER BY assignment.person.fullName, assignment.person.username
+            """)
+    List<Person> findPeopleWithActiveAssignments(
+            @Param("query") String query,
+            @Param("siteId") Long siteId
+    );
+
+    @Query("""
+            SELECT assignment
+            FROM PhoneAssignment assignment
+            JOIN FETCH assignment.phone
+            JOIN FETCH assignment.person
             WHERE assignment.id = :assignmentId
             """)
     Optional<PhoneAssignment> findByIdWithPhoneAndPerson(

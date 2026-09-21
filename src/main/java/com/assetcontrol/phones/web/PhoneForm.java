@@ -4,6 +4,7 @@ import com.assetcontrol.phones.application.RegisterPhoneCommand;
 import com.assetcontrol.phones.application.UpdatePhoneCommand;
 import com.assetcontrol.phones.domain.Phone;
 import com.assetcontrol.phones.domain.PhoneStatus;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
@@ -38,6 +39,9 @@ public class PhoneForm {
     private String observations;
 
     private PhoneStatus status = PhoneStatus.AVAILABLE;
+
+    @Valid
+    private PhoneAssignmentForm initialAssignment = new PhoneAssignmentForm();
 
     public static PhoneForm from(Phone phone) {
         PhoneForm form = new PhoneForm();
@@ -160,5 +164,13 @@ public class PhoneForm {
 
     public void setStatus(PhoneStatus status) {
         this.status = status;
+    }
+
+    public PhoneAssignmentForm getInitialAssignment() {
+        return initialAssignment;
+    }
+
+    public void setInitialAssignment(PhoneAssignmentForm initialAssignment) {
+        this.initialAssignment = initialAssignment;
     }
 }

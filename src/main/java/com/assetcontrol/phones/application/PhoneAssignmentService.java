@@ -2,6 +2,8 @@ package com.assetcontrol.phones.application;
 
 import com.assetcontrol.people.domain.Person;
 import com.assetcontrol.people.domain.PersonRepository;
+import com.assetcontrol.people.application.CreatePersonCommand;
+import com.assetcontrol.people.application.PersonService;
 import com.assetcontrol.phones.domain.Phone;
 import com.assetcontrol.phones.domain.PhoneAssignment;
 import com.assetcontrol.phones.domain.PhoneAssignmentRepository;
@@ -18,6 +20,7 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -25,15 +28,18 @@ public class PhoneAssignmentService {
 
     private final PhoneRepository phoneRepository;
     private final PersonRepository personRepository;
+    private final PersonService personService;
     private final PhoneAssignmentRepository phoneAssignmentRepository;
 
     public PhoneAssignmentService(
             PhoneRepository phoneRepository,
             PersonRepository personRepository,
+            PersonService personService,
             PhoneAssignmentRepository phoneAssignmentRepository
     ) {
         this.phoneRepository = phoneRepository;
         this.personRepository = personRepository;
+        this.personService = personService;
         this.phoneAssignmentRepository = phoneAssignmentRepository;
     }
 
@@ -72,6 +78,76 @@ public class PhoneAssignmentService {
         return assignments;
     }
 
+    @Transactional(readOnly = true)
+    public Map<Long, List<PhoneAssignment>> findActiveByPhoneIds(
+            Collection<Long> phoneIds
+    ) {
+        if (phoneIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return phoneAssignmentRepository.findActiveByPhoneIdsWithPerson(phoneIds)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        assignment -> assignment.getPhone().getId(),
+                        LinkedHashMap::new,
+                        Collectors.toList()
+                ));
+    }
+
+    @Transactional(readOnly = true)
+    public Map<Long, PhoneAssignment> findLastClosedByPhoneIds(
+            Collection<Long> phoneIds
+    ) {
+        if (phoneIds.isEmpty()) {
+            return Map.of();
+        }
+
+        Map<Long, PhoneAssignment> assignments = new LinkedHashMap<>();
+
+        for (PhoneAssignment assignment
+                : phoneAssignmentRepository.findClosedByPhoneIdsWithPerson(phoneIds)) {
+            assignments.putIfAbsent(assignment.getPhone().getId(), assignment);
+        }
+
+        return assignments;
+    }
+
+    @Transactional(readOnly = true)
+    public PhoneAssignment findLastClosedByPhoneId(Long phoneId) {
+        return phoneAssignmentRepository.findClosedByPhoneIdsWithPerson(
+                List.of(phoneId)
+        ).stream().findFirst().orElse(null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Person> findPeopleWithActiveAssignments(
+            String query,
+            Long siteId
+    ) {
+        return phoneAssignmentRepository.findPeopleWithActiveAssignments(
+                query == null ? "" : query.trim(),
+                siteId
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public Map<Long, List<PhoneAssignment>> findActiveByPersonIds(
+            Collection<Long> personIds
+    ) {
+        if (personIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return phoneAssignmentRepository.findActiveByPersonIdsWithPhone(personIds)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        assignment -> assignment.getPerson().getId(),
+                        LinkedHashMap::new,
+                        Collectors.toList()
+                ));
+    }
+
     public PhoneAssignment assign(
             Long phoneId,
             CreatePhoneAssignmentCommand command
@@ -85,14 +161,7 @@ public class PhoneAssignmentService {
             );
         }
 
-        if (command.personId() == null) {
-            throw new IllegalArgumentException("Selecciona una persona.");
-        }
-
-        Person person = personRepository.findById(command.personId())
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "La persona seleccionada no existe."
-                ));
+        Person person = resolvePerson(command);
 
         if (phoneAssignmentRepository.existsByPhoneIdAndPersonIdAndReturnedAtIsNull(
                 phoneId,
@@ -131,7 +200,10 @@ public class PhoneAssignmentService {
         return phoneAssignmentRepository.save(assignment);
     }
 
-    public void returnAssignment(Long assignmentId, LocalDate returnedAt) {
+    public PhoneAssignment returnAssignment(
+            Long assignmentId,
+            LocalDate returnedAt
+    ) {
         PhoneAssignment assignment = phoneAssignmentRepository
                 .findByIdWithPhoneAndPerson(assignmentId)
                 .orElseThrow(() -> new IllegalArgumentException(
@@ -154,6 +226,24 @@ public class PhoneAssignmentService {
 
         assignment.returnOn(returnDate);
         synchronizePhoneStatus(assignment.getPhone());
+
+        return assignment;
+    }
+
+    private Person resolvePerson(CreatePhoneAssignmentCommand command) {
+        if (command.personId() != null) {
+            return personRepository.findById(command.personId())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "La persona seleccionada no existe."
+                    ));
+        }
+
+        return personService.create(new CreatePersonCommand(
+                command.newPersonExternalId(),
+                command.newPersonUsername(),
+                command.newPersonFullName(),
+                command.newPersonEmail()
+        ));
     }
 
     private void synchronizePhoneStatus(Phone phone) {

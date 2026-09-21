@@ -3,6 +3,8 @@ package com.assetcontrol.phones.web;
 import com.assetcontrol.phones.application.PhoneAssignmentService;
 import com.assetcontrol.phones.application.PhoneService;
 import com.assetcontrol.phones.domain.PhoneAssignmentType;
+import com.assetcontrol.people.application.DuplicatePersonIdentifierException;
+import com.assetcontrol.people.application.DuplicatePersonUsernameException;
 import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
@@ -51,6 +53,8 @@ public class PhoneAssignmentController {
             Model model,
             RedirectAttributes redirectAttributes
     ) {
+        validatePersonSelection(form, bindingResult);
+
         if (bindingResult.hasErrors()) {
             model.addAttribute("phone", phoneService.findById(phoneId));
             model.addAttribute("phoneId", phoneId);
@@ -60,6 +64,26 @@ public class PhoneAssignmentController {
 
         try {
             phoneAssignmentService.assign(phoneId, form.toCommand());
+        } catch (DuplicatePersonIdentifierException exception) {
+            bindingResult.rejectValue(
+                    "newPersonExternalId",
+                    "person.identifier.duplicate",
+                    exception.getMessage()
+            );
+            model.addAttribute("phone", phoneService.findById(phoneId));
+            model.addAttribute("phoneId", phoneId);
+            addFormOptions(model);
+            return "phones/assignments/new";
+        } catch (DuplicatePersonUsernameException exception) {
+            bindingResult.rejectValue(
+                    "newPersonUsername",
+                    "person.username.duplicate",
+                    exception.getMessage()
+            );
+            model.addAttribute("phone", phoneService.findById(phoneId));
+            model.addAttribute("phoneId", phoneId);
+            addFormOptions(model);
+            return "phones/assignments/new";
         } catch (IllegalArgumentException exception) {
             bindingResult.reject("assignment", exception.getMessage());
             model.addAttribute("phone", phoneService.findById(phoneId));
@@ -85,11 +109,15 @@ public class PhoneAssignmentController {
             RedirectAttributes redirectAttributes
     ) {
         try {
-            phoneAssignmentService.returnAssignment(assignmentId, returnedAt);
+            var assignment = phoneAssignmentService.returnAssignment(
+                    assignmentId,
+                    returnedAt
+            );
             redirectAttributes.addFlashAttribute(
                     "successMessage",
                     "Asignación devuelta correctamente."
             );
+            return "redirect:/phones/" + assignment.getPhone().getId();
         } catch (IllegalArgumentException exception) {
             redirectAttributes.addFlashAttribute(
                     "errorMessage",
@@ -103,5 +131,61 @@ public class PhoneAssignmentController {
     private void addFormOptions(Model model) {
         model.addAttribute("people", phoneAssignmentService.findPeople());
         model.addAttribute("assignmentTypes", PhoneAssignmentType.values());
+    }
+
+    private void validatePersonSelection(
+            PhoneAssignmentForm form,
+            BindingResult bindingResult
+    ) {
+        if (form.getPersonId() != null) {
+            return;
+        }
+
+        if (!form.hasNewPersonData()) {
+            bindingResult.rejectValue(
+                    "personId",
+                    "assignment.person.required",
+                    "Selecciona una persona o registra una nueva."
+            );
+            return;
+        }
+
+        if (form.getNewPersonUsername() == null
+                || form.getNewPersonUsername().isBlank()) {
+            bindingResult.rejectValue(
+                    "newPersonUsername",
+                    "person.username.required",
+                    "El nombre de usuario es obligatorio."
+            );
+        }
+
+        if (!form.hasCompleteNewPersonData()) {
+            if (form.getNewPersonExternalId() == null
+                    || form.getNewPersonExternalId().isBlank()) {
+                bindingResult.rejectValue(
+                        "newPersonExternalId",
+                        "person.identifier.required",
+                        "El ID es obligatorio."
+                );
+            }
+
+            if (form.getNewPersonFullName() == null
+                    || form.getNewPersonFullName().isBlank()) {
+                bindingResult.rejectValue(
+                        "newPersonFullName",
+                        "person.name.required",
+                        "El nombre es obligatorio."
+                );
+            }
+
+            if (form.getNewPersonEmail() == null
+                    || form.getNewPersonEmail().isBlank()) {
+                bindingResult.rejectValue(
+                        "newPersonEmail",
+                        "person.email.required",
+                        "El correo es obligatorio."
+                );
+            }
+        }
     }
 }

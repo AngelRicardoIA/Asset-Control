@@ -121,6 +121,17 @@ public class InventoryExportService {
                         List.of("Fecha")
                 ),
                 new SheetDefinition(
+                        "Mantenimientos teléfonos",
+                        """
+                                SELECT ph.imei AS 'IMEI', pl.number AS 'Línea', ph.brand AS 'Marca', ph.model AS 'Modelo', mr.record_type AS 'Tipo', mr.performed_at AS 'Fecha', mr.description AS 'Descripción', mr.performed_by AS 'Realizado por'
+                                FROM phone_maintenance_records mr
+                                JOIN phones ph ON ph.id = mr.phone_id
+                                LEFT JOIN phone_lines pl ON pl.id = ph.phone_line_id
+                                ORDER BY mr.performed_at DESC, ph.imei
+                                """,
+                        List.of("Fecha")
+                ),
+                new SheetDefinition(
                         "Personas",
                         """
                                 SELECT external_id AS 'No. empleado', full_name AS 'Nombre completo', username AS 'Usuario', email AS 'Correo', job_title AS 'Puesto', department AS 'Área o departamento', manager_name AS 'Gerente'
@@ -274,6 +285,10 @@ public class InventoryExportService {
                 );
                 case "Mantenimientos equipos" -> List.of(
                         "HOST", "Asset", "Marca", "Modelo", "Tipo", "Fecha",
+                        "Descripción", "Realizado por"
+                );
+                case "Mantenimientos teléfonos" -> List.of(
+                        "IMEI", "Línea", "Marca", "Modelo", "Tipo", "Fecha",
                         "Descripción", "Realizado por"
                 );
                 case "Personas" -> List.of(

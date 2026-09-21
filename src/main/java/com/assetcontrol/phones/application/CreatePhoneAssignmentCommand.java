@@ -6,6 +6,10 @@ import java.time.LocalDate;
 
 public record CreatePhoneAssignmentCommand(
         Long personId,
+        String newPersonExternalId,
+        String newPersonUsername,
+        String newPersonFullName,
+        String newPersonEmail,
         PhoneAssignmentType type,
         LocalDate assignedAt,
         LocalDate dueAt,

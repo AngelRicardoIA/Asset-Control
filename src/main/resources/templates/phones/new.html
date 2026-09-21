@@ -13,7 +13,13 @@
         </div>
     </section>
 
-    <form class="form-panel" th:action="@{/phones}" th:object="${form}" method="post">
+    <form
+            class="form-panel"
+            data-assignment-form
+            th:action="@{/phones}"
+            th:object="${form}"
+            method="post"
+    >
 
         <p class="form-error" th:if="${#fields.hasGlobalErrors()}" th:errors="*{global}"></p>
 
@@ -96,11 +102,107 @@
             </div>
         </div>
 
+        <section class="assignment-section">
+            <div class="section-heading">
+                <div>
+                    <h2>Asignación inicial</h2>
+                    <p>Opcional. Si se registra, el estado del teléfono se actualiza automáticamente.</p>
+                </div>
+            </div>
+
+            <div class="field-grid">
+                <div class="form-field full-width">
+                    <label for="initialPersonId">Persona</label>
+                    <select id="initialPersonId" th:field="*{initialAssignment.personId}">
+                        <option value="">Selecciona una persona</option>
+                        <option
+                                th:each="person : ${people}"
+                                th:value="${person.id}"
+                                th:text="${person.username + ' · ' + person.fullName}"
+                        ></option>
+                    </select>
+                    <small class="form-error" th:errors="*{initialAssignment.personId}"></small>
+                </div>
+            </div>
+
+            <details class="inline-site-creation">
+                <summary>Registrar una persona nueva</summary>
+
+                <div class="field-grid">
+                    <div class="form-field">
+                        <label for="initialPersonExternalId">ID</label>
+                        <input id="initialPersonExternalId" type="text" th:field="*{initialAssignment.newPersonExternalId}" maxlength="100">
+                        <small class="form-error" th:errors="*{initialAssignment.newPersonExternalId}"></small>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="initialPersonUsername">Nombre de usuario</label>
+                        <input id="initialPersonUsername" type="text" th:field="*{initialAssignment.newPersonUsername}" maxlength="100">
+                        <small class="form-error" th:errors="*{initialAssignment.newPersonUsername}"></small>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="initialPersonFullName">Nombre completo</label>
+                        <input id="initialPersonFullName" type="text" th:field="*{initialAssignment.newPersonFullName}" maxlength="150">
+                        <small class="form-error" th:errors="*{initialAssignment.newPersonFullName}"></small>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="initialPersonEmail">Correo</label>
+                        <input id="initialPersonEmail" type="email" th:field="*{initialAssignment.newPersonEmail}" maxlength="254">
+                        <small class="form-error" th:errors="*{initialAssignment.newPersonEmail}"></small>
+                    </div>
+                </div>
+            </details>
+
+            <div class="field-grid assignment-fields">
+                <div class="form-field">
+                    <label for="initialAssignmentType">Tipo de movimiento</label>
+                    <select
+                            id="initialAssignmentType"
+                            th:field="*{initialAssignment.type}"
+                            data-assignment-type
+                    >
+                        <option
+                                th:each="assignmentType : ${phoneAssignmentTypes}"
+                                th:value="${assignmentType}"
+                                th:text="${assignmentType.label}"
+                        ></option>
+                    </select>
+                    <small class="form-error" th:errors="*{initialAssignment.type}"></small>
+                </div>
+
+                <div class="form-field">
+                    <label for="initialAssignedAt">Fecha de asignación</label>
+                    <input id="initialAssignedAt" type="date" th:field="*{initialAssignment.assignedAt}">
+                    <small class="form-error" th:errors="*{initialAssignment.assignedAt}"></small>
+                </div>
+
+                <div class="form-field full-width is-hidden" data-due-date-field>
+                    <label for="initialDueAt">Vencimiento del préstamo</label>
+                    <input
+                            id="initialDueAt"
+                            type="date"
+                            th:field="*{initialAssignment.dueAt}"
+                            data-due-date
+                    >
+                    <small class="form-error" th:errors="*{initialAssignment.dueAt}"></small>
+                </div>
+
+                <div class="form-field full-width">
+                    <label for="initialObservations">Observaciones de asignación</label>
+                    <textarea id="initialObservations" th:field="*{initialAssignment.observations}" maxlength="2000"></textarea>
+                    <small class="form-error" th:errors="*{initialAssignment.observations}"></small>
+                </div>
+            </div>
+        </section>
+
         <div class="form-actions">
             <a class="secondary-button" th:href="@{/phones}">Cancelar</a>
             <button class="primary-button" type="submit">Registrar teléfono</button>
         </div>
     </form>
 </main>
+<script th:src="@{/js/assignment-form.js}" defer></script>
 </body>
 </html>

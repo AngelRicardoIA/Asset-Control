@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="https://www.thymeleaf.org">
+<head th:replace="~{fragments/document-head :: head('Registrar mantenimiento')}"></head>
+<body>
+<header th:replace="~{fragments/app-header :: header}"></header>
+
+<main class="page-content narrow-content">
+    <section class="page-heading">
+        <div>
+            <p class="eyebrow">Historial técnico</p>
+            <h1 th:text="${phone.phoneLine != null ? phone.phoneLine.number : phone.imei}">Teléfono</h1>
+            <p th:text="${phone.brand + ' ' + phone.model}">Marca Modelo</p>
+        </div>
+    </section>
+
+    <form
+            class="form-panel"
+            th:action="@{/phones/{phoneId}/maintenance(phoneId=${phone.id})}"
+            th:object="${maintenance}"
+            method="post"
+    >
+        <div class="field-grid">
+            <div class="form-field">
+                <label for="recordType">Tipo de registro</label>
+                <select id="recordType" th:field="*{recordType}">
+                    <option value="">Selecciona una opción</option>
+                    <option
+                            th:each="type : ${maintenanceTypes}"
+                            th:value="${type}"
+                            th:text="${type == T(com.assetcontrol.phones.maintenance.domain.PhoneMaintenanceType).MAINTENANCE ? 'Mantenimiento' : type == T(com.assetcontrol.phones.maintenance.domain.PhoneMaintenanceType).REPAIR ? 'Reparación' : type == T(com.assetcontrol.phones.maintenance.domain.PhoneMaintenanceType).COMPONENT_REPLACEMENT ? 'Cambio de componente' : 'Nota técnica'}"
+                    ></option>
+                </select>
+                <small class="form-error" th:errors="*{recordType}"></small>
+            </div>
+
+            <div class="form-field">
+                <label for="performedAt">Fecha</label>
+                <input id="performedAt" type="date" th:field="*{performedAt}">
+                <small class="form-error" th:errors="*{performedAt}"></small>
+            </div>
+
+            <div class="form-field full-width">
+                <label for="performedBy">Realizado por</label>
+                <input id="performedBy" type="text" th:field="*{performedBy}" maxlength="100">
+                <small class="form-error" th:errors="*{performedBy}"></small>
+            </div>
+
+            <div class="form-field full-width">
+                <label for="description">Descripción</label>
+                <textarea id="description" th:field="*{description}" maxlength="1000"></textarea>
+                <small class="form-error" th:errors="*{description}"></small>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <a class="secondary-button" th:href="@{/phones/{phoneId}(phoneId=${phone.id})}">Cancelar</a>
+            <button class="primary-button" type="submit">Guardar registro</button>
+        </div>
+    </form>
+</main>
+</body>
+</html>
