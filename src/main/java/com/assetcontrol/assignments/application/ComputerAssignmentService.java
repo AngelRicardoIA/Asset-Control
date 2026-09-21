@@ -226,4 +226,30 @@ public class ComputerAssignmentService {
                 List.of(computerId)
         ).stream().findFirst().orElse(null);
     }
+
+    public List<Person> findPeopleWithActiveAssignments(
+            String query,
+            Long siteId
+    ) {
+        return assignmentRepository.findPeopleWithActiveAssignments(
+                query == null ? "" : query.trim(),
+                siteId
+        );
+    }
+
+    public Map<Long, List<ComputerAssignment>> findActiveByPersonIds(
+            Collection<Long> personIds
+    ) {
+        if (personIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return assignmentRepository.findActiveByPersonIdsWithComputer(personIds)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        assignment -> assignment.getPerson().getId(),
+                        LinkedHashMap::new,
+                        Collectors.toList()
+                ));
+    }
 }

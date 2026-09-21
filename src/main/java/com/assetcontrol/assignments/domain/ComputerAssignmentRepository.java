@@ -1,5 +1,6 @@
 package com.assetcontrol.assignments.domain;
 
+import com.assetcontrol.people.domain.Person;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -66,5 +67,39 @@ public interface ComputerAssignmentRepository
         """)
     List<ComputerAssignment> findClosedByComputerIdsWithPerson(
             @Param("computerIds") Collection<Long> computerIds
+    );
+
+    @Query("""
+        SELECT assignment
+        FROM ComputerAssignment assignment
+        JOIN FETCH assignment.computer computer
+        JOIN FETCH computer.site
+        JOIN FETCH assignment.person
+        WHERE assignment.person.id IN :personIds
+        AND assignment.returnedAt IS NULL
+        ORDER BY assignment.person.fullName, computer.host
+        """)
+    List<ComputerAssignment> findActiveByPersonIdsWithComputer(
+            @Param("personIds") Collection<Long> personIds
+    );
+
+    @Query("""
+        SELECT DISTINCT person
+        FROM ComputerAssignment assignment
+        JOIN assignment.person person
+        WHERE assignment.returnedAt IS NULL
+        AND (:siteId IS NULL OR assignment.computer.site.id = :siteId)
+        AND (
+            :query = ''
+            OR LOWER(person.username) LIKE LOWER(CONCAT('%', :query, '%'))
+            OR LOWER(person.fullName) LIKE LOWER(CONCAT('%', :query, '%'))
+            OR LOWER(person.externalId) LIKE LOWER(CONCAT('%', :query, '%'))
+            OR LOWER(person.email) LIKE LOWER(CONCAT('%', :query, '%'))
+        )
+        ORDER BY person.fullName, person.username
+        """)
+    List<Person> findPeopleWithActiveAssignments(
+            @Param("query") String query,
+            @Param("siteId") Long siteId
     );
 }

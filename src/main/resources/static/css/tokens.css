@@ -16,6 +16,9 @@
     --radius-large: 28px;
     --radius-medium: 18px;
     --transition: 180ms ease;
+    --surface: var(--color-surface);
+    --text-primary: var(--color-text);
+    --text-muted: var(--color-text-muted);
 }
 
 :root[data-theme="dark"] {

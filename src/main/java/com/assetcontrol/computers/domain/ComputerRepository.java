@@ -48,12 +48,14 @@ public interface ComputerRepository extends JpaRepository<Computer, Long> {
         )
         AND (:status IS NULL OR computer.status = :status)
         AND (:type IS NULL OR computer.type = :type)
+        AND (:siteId IS NULL OR computer.site.id = :siteId)
         ORDER BY computer.host
         """)
     List<Computer> search(
             @Param("query") String query,
             @Param("status") ComputerStatus status,
-            @Param("type") ComputerType type
+            @Param("type") ComputerType type,
+            @Param("siteId") Long siteId
     );
 
     @Query("""

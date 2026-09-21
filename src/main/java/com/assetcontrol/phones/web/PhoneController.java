@@ -10,6 +10,8 @@ import com.assetcontrol.phones.domain.PhoneStatus;
 import com.assetcontrol.phones.maintenance.application.PhoneMaintenanceService;
 import com.assetcontrol.people.application.DuplicatePersonIdentifierException;
 import com.assetcontrol.people.application.DuplicatePersonUsernameException;
+import com.assetcontrol.people.domain.Person;
+import com.assetcontrol.shared.web.InventoryView;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -19,9 +21,11 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
+import java.util.Map;
 
 @Controller
 @RequestMapping("/phones")
@@ -48,16 +52,58 @@ public class PhoneController {
     }
 
     @GetMapping
-    public String showPhones(Model model) {
-        List<Phone> phones = phoneService.findAll();
+    public String showPhones(
+            @RequestParam(defaultValue = "") String query,
+            @RequestParam(required = false) PhoneStatus status,
+            @RequestParam(required = false) Long siteId,
+            @RequestParam(defaultValue = "EQUIPMENT") InventoryView view,
+            Model model
+    ) {
+        if (view == InventoryView.EQUIPMENT) {
+            List<Phone> phones = phoneService.search(query, status, siteId);
 
-        model.addAttribute("phones", phones);
-        model.addAttribute(
-                "primaryAssignmentsByPhoneId",
-                phoneAssignmentService.findPrimaryActiveAssignments(
-                        phones.stream().map(Phone::getId).toList()
-                )
-        );
+            List<Long> availablePhoneIds = phones.stream()
+                    .filter(phone -> phone.getStatus() == PhoneStatus.AVAILABLE)
+                    .map(Phone::getId)
+                    .toList();
+
+            model.addAttribute("phones", phones);
+            model.addAttribute(
+                    "activeAssignmentsByPhoneId",
+                    phoneAssignmentService.findActiveByPhoneIds(
+                            phones.stream().map(Phone::getId).toList()
+                    )
+            );
+            model.addAttribute(
+                    "lastClosedAssignmentByPhoneId",
+                    phoneAssignmentService.findLastClosedByPhoneIds(availablePhoneIds)
+            );
+            model.addAttribute("peopleWithAssets", List.of());
+            model.addAttribute("activeAssignmentsByPersonId", Map.of());
+        } else {
+            List<Person> people = phoneAssignmentService.findPeopleWithActiveAssignments(
+                    query,
+                    siteId
+            );
+
+            model.addAttribute("phones", List.of());
+            model.addAttribute("activeAssignmentsByPhoneId", Map.of());
+            model.addAttribute("lastClosedAssignmentByPhoneId", Map.of());
+            model.addAttribute("peopleWithAssets", people);
+            model.addAttribute(
+                    "activeAssignmentsByPersonId",
+                    phoneAssignmentService.findActiveByPersonIds(
+                            people.stream().map(Person::getId).toList()
+                    )
+            );
+        }
+
+        model.addAttribute("query", query);
+        model.addAttribute("selectedStatus", status);
+        model.addAttribute("selectedSiteId", siteId);
+        model.addAttribute("view", view);
+        model.addAttribute("sites", siteService.findAllActive());
+        model.addAttribute("phoneStatuses", PhoneStatus.values());
 
         return "phones/index";
     }

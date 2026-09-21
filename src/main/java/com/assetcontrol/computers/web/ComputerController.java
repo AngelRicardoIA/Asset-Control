@@ -12,6 +12,8 @@ import com.assetcontrol.computers.domain.ComputerType;
 import com.assetcontrol.people.application.DuplicatePersonIdentifierException;
 import com.assetcontrol.people.application.DuplicatePersonUsernameException;
 import com.assetcontrol.people.application.PersonService;
+import com.assetcontrol.people.domain.Person;
+import com.assetcontrol.shared.web.InventoryView;
 import com.assetcontrol.sites.application.SiteService;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
@@ -26,6 +28,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import com.assetcontrol.maintenance.application.ComputerMaintenanceService;
 
 import java.util.List;
+import java.util.Map;
 
 @Controller
 @RequestMapping("/computers")
@@ -59,30 +62,60 @@ public class ComputerController {
             @RequestParam(defaultValue = "") String query,
             @RequestParam(required = false) ComputerStatus status,
             @RequestParam(required = false) ComputerType type,
+            @RequestParam(required = false) Long siteId,
+            @RequestParam(defaultValue = "EQUIPMENT") InventoryView view,
             Model model
     ) {
-        List<Computer> computers = computerService.search(query, status, type);
+        if (view == InventoryView.EQUIPMENT) {
+            List<Computer> computers = computerService.search(
+                    query,
+                    status,
+                    type,
+                    siteId
+            );
 
-        List<Long> availableComputerIds = computers.stream()
-                .filter(computer -> computer.getStatus() == ComputerStatus.AVAILABLE)
-                .map(Computer::getId)
-                .toList();
+            List<Long> availableComputerIds = computers.stream()
+                    .filter(computer -> computer.getStatus() == ComputerStatus.AVAILABLE)
+                    .map(Computer::getId)
+                    .toList();
 
-        model.addAttribute("computers", computers);
-        model.addAttribute(
-                "activeAssignmentsByComputerId",
-                assignmentService.findActiveByComputerIds(
-                        computers.stream().map(Computer::getId).toList()
-                )
-        );
+            model.addAttribute("computers", computers);
+            model.addAttribute(
+                    "activeAssignmentsByComputerId",
+                    assignmentService.findActiveByComputerIds(
+                            computers.stream().map(Computer::getId).toList()
+                    )
+            );
+            model.addAttribute(
+                    "lastClosedAssignmentByComputerId",
+                    assignmentService.findLastClosedByComputerIds(availableComputerIds)
+            );
+            model.addAttribute("peopleWithAssets", List.of());
+            model.addAttribute("activeAssignmentsByPersonId", Map.of());
+        } else {
+            List<Person> people = assignmentService.findPeopleWithActiveAssignments(
+                    query,
+                    siteId
+            );
 
-        model.addAttribute(
-                "lastClosedAssignmentByComputerId",
-                assignmentService.findLastClosedByComputerIds(availableComputerIds)
-        );
+            model.addAttribute("computers", List.of());
+            model.addAttribute("activeAssignmentsByComputerId", Map.of());
+            model.addAttribute("lastClosedAssignmentByComputerId", Map.of());
+            model.addAttribute("peopleWithAssets", people);
+            model.addAttribute(
+                    "activeAssignmentsByPersonId",
+                    assignmentService.findActiveByPersonIds(
+                            people.stream().map(Person::getId).toList()
+                    )
+            );
+        }
+
         model.addAttribute("query", query);
         model.addAttribute("selectedStatus", status);
         model.addAttribute("selectedType", type);
+        model.addAttribute("selectedSiteId", siteId);
+        model.addAttribute("view", view);
+        model.addAttribute("sites", siteService.findAllActive());
         model.addAttribute("computerStatuses", ComputerStatus.values());
         model.addAttribute("computerTypes", ComputerType.values());
 

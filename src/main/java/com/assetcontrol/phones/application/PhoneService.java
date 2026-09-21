@@ -37,6 +37,19 @@ public class PhoneService {
     }
 
     @Transactional(readOnly = true)
+    public List<Phone> search(
+            String query,
+            PhoneStatus status,
+            Long siteId
+    ) {
+        return phoneRepository.search(
+                query == null ? "" : query.trim(),
+                status,
+                siteId
+        );
+    }
+
+    @Transactional(readOnly = true)
     public Phone findById(Long phoneId) {
         return phoneRepository.findByIdWithDetails(phoneId)
                 .orElseThrow(() -> new PhoneNotFoundException(phoneId));

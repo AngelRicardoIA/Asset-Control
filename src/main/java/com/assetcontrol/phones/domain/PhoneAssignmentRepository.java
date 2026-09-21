@@ -1,5 +1,6 @@
 package com.assetcontrol.phones.domain;
 
+import com.assetcontrol.people.domain.Person;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -75,18 +76,19 @@ public interface PhoneAssignmentRepository extends JpaRepository<PhoneAssignment
     );
 
     @Query("""
-            SELECT DISTINCT assignment.person
+            SELECT DISTINCT person
             FROM PhoneAssignment assignment
+            JOIN assignment.person person
             WHERE assignment.returnedAt IS NULL
             AND (:siteId IS NULL OR assignment.phone.site.id = :siteId)
             AND (
                 :query = ''
-                OR LOWER(assignment.person.username) LIKE LOWER(CONCAT('%', :query, '%'))
-                OR LOWER(assignment.person.fullName) LIKE LOWER(CONCAT('%', :query, '%'))
-                OR LOWER(assignment.person.externalId) LIKE LOWER(CONCAT('%', :query, '%'))
-                OR LOWER(assignment.person.email) LIKE LOWER(CONCAT('%', :query, '%'))
+                OR LOWER(person.username) LIKE LOWER(CONCAT('%', :query, '%'))
+                OR LOWER(person.fullName) LIKE LOWER(CONCAT('%', :query, '%'))
+                OR LOWER(person.externalId) LIKE LOWER(CONCAT('%', :query, '%'))
+                OR LOWER(person.email) LIKE LOWER(CONCAT('%', :query, '%'))
             )
-            ORDER BY assignment.person.fullName, assignment.person.username
+            ORDER BY person.fullName, person.username
             """)
     List<Person> findPeopleWithActiveAssignments(
             @Param("query") String query,

@@ -18,15 +18,43 @@
         </div>
     </section>
 
-    <form class="filter-panel" th:action="@{/computers}" method="get">
+    <nav class="inventory-view-toggle" aria-label="Vista del inventario">
+        <a
+                class="inventory-view-toggle__option"
+                th:classappend="${view == T(com.assetcontrol.shared.web.InventoryView).EQUIPMENT ? ' inventory-view-toggle__option--active' : ''}"
+                th:href="@{/computers(view='EQUIPMENT',query=${query},status=${selectedStatus},type=${selectedType},siteId=${selectedSiteId})}"
+        >Equipos</a>
+        <a
+                class="inventory-view-toggle__option"
+                th:classappend="${view == T(com.assetcontrol.shared.web.InventoryView).PEOPLE ? ' inventory-view-toggle__option--active' : ''}"
+                th:href="@{/computers(view='PEOPLE',query=${query},siteId=${selectedSiteId})}"
+        >Personas</a>
+    </nav>
+
+    <form class="filter-panel filter-panel--inventory" th:action="@{/computers}" method="get">
+        <input type="hidden" name="view" th:value="${view}">
+
         <input
                 type="search"
                 name="query"
                 th:value="${query}"
-                placeholder="Hostname, usuario, nombre, asset, marca o modelo"
+                th:placeholder="${view == T(com.assetcontrol.shared.web.InventoryView).EQUIPMENT ? 'Hostname, usuario, nombre, asset, marca o modelo' : 'Usuario, nombre, ID o correo'}"
         >
 
-        <select name="status">
+        <select name="siteId">
+            <option value="">Todas las ubicaciones</option>
+            <option
+                    th:each="site : ${sites}"
+                    th:value="${site.id}"
+                    th:selected="${site.id == selectedSiteId}"
+                    th:text="${site.name}"
+            ></option>
+        </select>
+
+        <select
+                name="status"
+                th:if="${view == T(com.assetcontrol.shared.web.InventoryView).EQUIPMENT}"
+        >
             <option value="">Todos los estados</option>
             <option
                     th:each="status : ${computerStatuses}"
@@ -36,7 +64,10 @@
             ></option>
         </select>
 
-        <select name="type">
+        <select
+                name="type"
+                th:if="${view == T(com.assetcontrol.shared.web.InventoryView).EQUIPMENT}"
+        >
             <option value="">Todos los tipos</option>
             <option
                     th:each="type : ${computerTypes}"
@@ -49,7 +80,10 @@
         <button class="secondary-button" type="submit">Filtrar</button>
     </form>
 
-    <section class="inventory-panel">
+    <section
+            class="inventory-panel"
+            th:if="${view == T(com.assetcontrol.shared.web.InventoryView).EQUIPMENT}"
+    >
         <div class="empty-state" th:if="${#lists.isEmpty(computers)}">
             <h2>No se encontraron equipos</h2>
             <p>Registra un equipo o ajusta los filtros de búsqueda.</p>
@@ -95,6 +129,40 @@
                         th:text="${computer.status == T(com.assetcontrol.computers.domain.ComputerStatus).AVAILABLE ? 'Disponible' : computer.status == T(com.assetcontrol.computers.domain.ComputerStatus).ASSIGNED ? 'Asignado' : computer.status == T(com.assetcontrol.computers.domain.ComputerStatus).LOANED ? 'Préstamo' : 'Baja'}"
                 >Disponible</span>
             </a>
+        </div>
+    </section>
+
+    <section
+            class="inventory-panel"
+            th:if="${view == T(com.assetcontrol.shared.web.InventoryView).PEOPLE}"
+    >
+        <div class="empty-state" th:if="${#lists.isEmpty(peopleWithAssets)}">
+            <h2>No se encontraron personas con equipos asignados</h2>
+            <p>Ajusta la búsqueda o los filtros de ubicación.</p>
+        </div>
+
+        <div class="person-list" th:unless="${#lists.isEmpty(peopleWithAssets)}">
+            <article class="person-item" th:each="person : ${peopleWithAssets}">
+                <div class="person-main-data">
+                    <strong th:text="${person.fullName}">Nombre completo</strong>
+                    <span th:text="${person.username + ' · ' + person.externalId}">usuario · ID</span>
+                    <small th:text="${person.email}">correo</small>
+                    <small th:if="${person.jobTitle != null}" th:text="${person.jobTitle}">Puesto</small>
+                    <small th:if="${person.department != null}" th:text="${person.department}">Área</small>
+                </div>
+
+                <div class="person-assets">
+                    <a
+                            class="person-asset"
+                            th:each="assignment : ${activeAssignmentsByPersonId.get(person.id)}"
+                            th:href="@{/computers/{id}(id=${assignment.computer.id})}"
+                    >
+                        <strong th:text="${assignment.computer.host}">HOST-001</strong>
+                        <span th:text="${assignment.computer.brand + ' ' + assignment.computer.model}">Marca Modelo</span>
+                        <small th:text="${'Asset: ' + assignment.computer.asset + ' · ' + assignment.computer.site.name}">Asset · Ubicación</small>
+                    </a>
+                </div>
+            </article>
         </div>
     </section>
 </main>

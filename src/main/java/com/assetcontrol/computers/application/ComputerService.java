@@ -30,11 +30,12 @@ public class ComputerService {
     public List<Computer> search(
             String query,
             ComputerStatus status,
-            ComputerType type
+            ComputerType type,
+            Long siteId
     ) {
         String normalizedQuery = query == null ? "" : query.trim();
 
-        return computerRepository.search(normalizedQuery, status, type);
+        return computerRepository.search(normalizedQuery, status, type, siteId);
     }
 
     public Computer findById(Long id) {
