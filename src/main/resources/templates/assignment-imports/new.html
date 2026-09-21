@@ -14,7 +14,8 @@
     <section class="form-panel">
         <p class="alert alert--error" th:if="${errorMessage}" th:text="${errorMessage}"></p>
         <p>Columnas obligatorias: <code th:text="${headers}"></code></p>
-        <p>Fechas: <code>yyyy-MM-dd</code>. Tipos: <code>ASSIGNMENT</code> o <code>LOAN</code>.</p>
+        <p th:if="${kind.name() == 'COMPUTER'}">Fecha asignación: <code>yyyy-MM-dd</code> o <code>d/M/yyyy</code>.</p>
+        <p th:if="${kind.name() == 'PHONE'}">Fechas: <code>yyyy-MM-dd</code>. Tipos: <code>ASSIGNMENT</code> o <code>LOAN</code>.</p>
         <form th:action="${kind.name() == 'COMPUTER' ? '/assignment-imports/computers/preview' : '/assignment-imports/phones/preview'}" method="post" enctype="multipart/form-data">
             <label for="file">Archivo CSV</label>
             <input id="file" name="file" type="file" accept=".csv,text/csv" required>
@@ -22,7 +23,7 @@
         </form>
         <div class="alert alert--success" th:if="${preview}">
             <p th:text="${'Se validaron ' + preview.rows().size() + ' asignaciones.'}"></p>
-            <form th:action="@{/assignment-imports/confirm}" method="post">
+            <form th:action="${kind.name() == 'COMPUTER' ? '/assignment-imports/computers/confirm' : '/assignment-imports/phones/confirm'}" method="post">
                 <button class="primary-button" type="submit" th:text="${'¿Seguro que quieres importar ' + preview.rows().size() + ' asignaciones?'}"></button>
             </form>
         </div>

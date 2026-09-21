@@ -10,5 +10,6 @@ public interface PersonRepository extends JpaRepository<Person, Long> {
     boolean existsByExternalIdIgnoreCase(String externalId);
     boolean existsByUsernameIgnoreCase(String username);
     List<Person> findAllByOrderByFullNameAsc();
+    Optional<Person> findByExternalIdIgnoreCase(String externalId);
     Optional<Person> findByUsernameIgnoreCase(String username);
 }

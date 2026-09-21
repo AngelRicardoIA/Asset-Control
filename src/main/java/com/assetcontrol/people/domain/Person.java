@@ -31,6 +31,15 @@ public class Person {
     @Column(nullable = false, length = 254)
     private String email;
 
+    @Column(name = "job_title", length = 150)
+    private String jobTitle;
+
+    @Column(length = 150)
+    private String department;
+
+    @Column(name = "manager_name", length = 150)
+    private String managerName;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -82,5 +91,35 @@ public class Person {
 
     public String getUsername() {
         return username;
+    }
+
+    public void updateDetails(
+            String externalId,
+            String username,
+            String fullName,
+            String email,
+            String jobTitle,
+            String department,
+            String managerName
+    ) {
+        this.externalId = externalId;
+        this.username = username;
+        this.fullName = fullName;
+        this.email = email;
+        this.jobTitle = jobTitle;
+        this.department = department;
+        this.managerName = managerName;
+    }
+
+    public String getJobTitle() {
+        return jobTitle;
+    }
+
+    public String getDepartment() {
+        return department;
+    }
+
+    public String getManagerName() {
+        return managerName;
     }
 }

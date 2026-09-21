@@ -19,6 +19,8 @@ public interface ComputerRepository extends JpaRepository<Computer, Long> {
 
     Optional<Computer> findByHostIgnoreCase(String host);
 
+    Optional<Computer> findByAssetIgnoreCase(String asset);
+
     @Query("""
         SELECT computer
         FROM Computer computer
