@@ -48,6 +48,10 @@ public class ComputerAssignmentService {
         return assignmentRepository.findHistoryByComputerId(computerId);
     }
 
+    public List<ComputerAssignment> findHistoryByPersonId(Long personId) {
+        return assignmentRepository.findHistoryByPersonIdWithComputer(personId);
+    }
+
     @Transactional
     public ComputerAssignment create(CreateComputerAssignmentCommand command) {
         Computer computer = computerRepository.findById(command.computerId())

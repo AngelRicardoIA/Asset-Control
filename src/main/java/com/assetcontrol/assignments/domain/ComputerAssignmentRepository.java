@@ -23,6 +23,19 @@ public interface ComputerAssignmentRepository
             @Param("computerId") Long computerId
     );
 
+    @Query("""
+            SELECT assignment
+            FROM ComputerAssignment assignment
+            JOIN FETCH assignment.computer computer
+            JOIN FETCH computer.site
+            JOIN FETCH assignment.person
+            WHERE assignment.person.id = :personId
+            ORDER BY assignment.assignedAt DESC, assignment.id DESC
+            """)
+    List<ComputerAssignment> findHistoryByPersonIdWithComputer(
+            @Param("personId") Long personId
+    );
+
     boolean existsByComputer_IdAndPerson_IdAndReturnedAtIsNull(
             Long computerId,
             Long personId

@@ -130,13 +130,17 @@
 
         <div class="person-list" th:unless="${#lists.isEmpty(peopleWithAssets)}">
             <article class="person-item" th:each="person : ${peopleWithAssets}">
-                <div class="person-main-data">
+                <a
+                        class="person-main-data person-main-data--link"
+                        th:href="@{/people/{personId}(personId=${person.id})}"
+                >
                     <strong th:text="${person.fullName}">Nombre completo</strong>
                     <span th:text="${person.username + ' · ' + person.externalId}">usuario · ID</span>
                     <small th:text="${person.email}">correo</small>
                     <small th:if="${person.jobTitle != null}" th:text="${person.jobTitle}">Puesto</small>
                     <small th:if="${person.department != null}" th:text="${person.department}">Área</small>
-                </div>
+                    <small class="person-profile-link-label">Ver perfil completo</small>
+                </a>
 
                 <div class="person-assets">
                     <a

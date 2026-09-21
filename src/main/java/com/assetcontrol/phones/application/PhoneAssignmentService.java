@@ -61,6 +61,11 @@ public class PhoneAssignmentService {
     }
 
     @Transactional(readOnly = true)
+    public List<PhoneAssignment> findHistoryByPersonId(Long personId) {
+        return phoneAssignmentRepository.findHistoryByPersonIdWithPhone(personId);
+    }
+
+    @Transactional(readOnly = true)
     public Map<Long, PhoneAssignment> findPrimaryActiveAssignments(
             Collection<Long> phoneIds
     ) {

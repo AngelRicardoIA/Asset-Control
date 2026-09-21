@@ -37,6 +37,20 @@ public interface PhoneAssignmentRepository extends JpaRepository<PhoneAssignment
     @Query("""
             SELECT assignment
             FROM PhoneAssignment assignment
+            JOIN FETCH assignment.phone phone
+            JOIN FETCH phone.site
+            LEFT JOIN FETCH phone.phoneLine
+            JOIN FETCH assignment.person
+            WHERE assignment.person.id = :personId
+            ORDER BY assignment.assignedAt DESC, assignment.id DESC
+            """)
+    List<PhoneAssignment> findHistoryByPersonIdWithPhone(
+            @Param("personId") Long personId
+    );
+
+    @Query("""
+            SELECT assignment
+            FROM PhoneAssignment assignment
             JOIN FETCH assignment.phone
             JOIN FETCH assignment.person
             WHERE assignment.phone.id IN :phoneIds

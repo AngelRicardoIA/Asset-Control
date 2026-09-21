@@ -22,6 +22,11 @@ public class PersonService {
         return personRepository.findAllByOrderByFullNameAsc();
     }
 
+    public Person findById(Long personId) {
+        return personRepository.findById(personId)
+                .orElseThrow(() -> new PersonNotFoundException(personId));
+    }
+
     private String normalizeUsername(String value) {
         return normalizeRequired(value, "nombre de usuario")
                 .toLowerCase(Locale.ROOT);

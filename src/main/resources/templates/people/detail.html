@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="https://www.thymeleaf.org">
+<head th:replace="~{fragments/document-head :: head('Perfil de persona')}"></head>
+<body>
+<header th:replace="~{fragments/app-header :: header}"></header>
+
+<main class="page-content">
+    <section class="page-heading">
+        <div>
+            <p class="eyebrow">Perfil de persona</p>
+            <h1 th:text="${profile.person.fullName}">Nombre completo</h1>
+            <p th:text="${profile.person.username + ' · ID ' + profile.person.externalId}">usuario · ID</p>
+        </div>
+
+        <div class="page-actions">
+            <a class="secondary-button" th:href="@{/computers(view='PEOPLE')}">Ver equipos</a>
+            <a class="secondary-button" th:href="@{/phones(view='PEOPLE')}">Ver teléfonos</a>
+        </div>
+    </section>
+
+    <section class="detail-grid">
+        <article class="detail-card">
+            <span>Nombre de usuario</span>
+            <strong th:text="${profile.person.username}">usuario</strong>
+        </article>
+
+        <article class="detail-card">
+            <span>Número de empleado</span>
+            <strong th:text="${profile.person.externalId}">ID</strong>
+        </article>
+
+        <article class="detail-card">
+            <span>Correo</span>
+            <strong th:text="${profile.person.email}">correo@ejemplo.com</strong>
+        </article>
+
+        <article class="detail-card">
+            <span>Puesto</span>
+            <strong th:text="${profile.person.jobTitle ?: 'Sin registrar'}">Sin registrar</strong>
+        </article>
+
+        <article class="detail-card">
+            <span>Área</span>
+            <strong th:text="${profile.person.department ?: 'Sin registrar'}">Sin registrar</strong>
+        </article>
+
+        <article class="detail-card">
+            <span>Gerente</span>
+            <strong th:text="${profile.person.managerName ?: 'Sin registrar'}">Sin registrar</strong>
+        </article>
+    </section>
+
+    <section class="form-panel person-assets-section">
+        <div class="section-heading">
+            <div>
+                <h2>Activos asignados</h2>
+                <p>Equipos y teléfonos que actualmente están bajo su resguardo.</p>
+            </div>
+        </div>
+
+        <div class="person-profile-asset-grid">
+            <section class="person-profile-group">
+                <h3>Equipos de cómputo</h3>
+
+                <div class="empty-state person-empty-state" th:if="${#lists.isEmpty(profile.activeComputerAssignments)}">
+                    <p>No tiene equipos de cómputo activos.</p>
+                </div>
+
+                <div class="person-profile-asset-list" th:unless="${#lists.isEmpty(profile.activeComputerAssignments)}">
+                    <a
+                            class="person-profile-asset"
+                            th:each="assignment : ${profile.activeComputerAssignments}"
+                            th:href="@{/computers/{computerId}(computerId=${assignment.computer.id})}"
+                    >
+                        <div class="person-profile-asset__main">
+                            <strong th:text="${assignment.computer.host}">HOST-001</strong>
+                            <span th:text="${assignment.computer.brand + ' ' + assignment.computer.model}">Marca Modelo</span>
+                            <small th:text="${'Asset: ' + assignment.computer.asset + ' · ' + assignment.computer.site.name}">Asset · Ubicación</small>
+                        </div>
+
+                        <div class="person-profile-asset__status">
+                            <span
+                                    class="status-badge"
+                                    th:classappend="${assignment.assignmentType == T(com.assetcontrol.assignments.domain.AssignmentType).LOAN ? ' status-loaned' : ' status-assigned'}"
+                                    th:text="${assignment.assignmentType == T(com.assetcontrol.assignments.domain.AssignmentType).LOAN ? 'Préstamo' : 'Asignación'}"
+                            >Asignación</span>
+                            <small
+                                    class="assignment-expired"
+                                    th:if="${assignment.assignmentType == T(com.assetcontrol.assignments.domain.AssignmentType).LOAN and assignment.dueDate != null and assignment.dueDate.isBefore(T(java.time.LocalDate).now())}"
+                                    th:text="${'Venció: ' + #temporals.format(assignment.dueDate, 'dd/MM/yyyy')}"
+                            >Venció</small>
+                            <small
+                                    th:if="${assignment.assignmentType == T(com.assetcontrol.assignments.domain.AssignmentType).LOAN and assignment.dueDate != null and !assignment.dueDate.isBefore(T(java.time.LocalDate).now())}"
+                                    th:text="${'Vence: ' + #temporals.format(assignment.dueDate, 'dd/MM/yyyy')}"
+                            >Vence</small>
+                        </div>
+                    </a>
+                </div>
+            </section>
+
+            <section class="person-profile-group">
+                <h3>Teléfonos</h3>
+
+                <div class="empty-state person-empty-state" th:if="${#lists.isEmpty(profile.activePhoneAssignments)}">
+                    <p>No tiene teléfonos activos.</p>
+                </div>
+
+                <div class="person-profile-asset-list" th:unless="${#lists.isEmpty(profile.activePhoneAssignments)}">
+                    <a
+                            class="person-profile-asset"
+                            th:each="assignment : ${profile.activePhoneAssignments}"
+                            th:href="@{/phones/{phoneId}(phoneId=${assignment.phone.id})}"
+                    >
+                        <div class="person-profile-asset__main">
+                            <strong th:text="${assignment.phone.phoneLine != null ? assignment.phone.phoneLine.number : assignment.phone.imei}">Teléfono</strong>
+                            <span th:text="${assignment.phone.brand + ' ' + assignment.phone.model}">Marca Modelo</span>
+                            <small th:text="${'IMEI: ' + assignment.phone.imei + ' · ' + assignment.phone.site.name}">IMEI · Ubicación</small>
+                        </div>
+
+                        <div class="person-profile-asset__status">
+                            <span
+                                    class="status-badge"
+                                    th:classappend="${assignment.type == T(com.assetcontrol.phones.domain.PhoneAssignmentType).LOAN ? ' status-loaned' : ' status-assigned'}"
+                                    th:text="${assignment.type.label}"
+                            >Asignación</span>
+                            <small
+                                    class="assignment-expired"
+                                    th:if="${assignment.type == T(com.assetcontrol.phones.domain.PhoneAssignmentType).LOAN and assignment.dueAt != null and assignment.dueAt.isBefore(T(java.time.LocalDate).now())}"
+                                    th:text="${'Venció: ' + #temporals.format(assignment.dueAt, 'dd/MM/yyyy')}"
+                            >Venció</small>
+                            <small
+                                    th:if="${assignment.type == T(com.assetcontrol.phones.domain.PhoneAssignmentType).LOAN and assignment.dueAt != null and !assignment.dueAt.isBefore(T(java.time.LocalDate).now())}"
+                                    th:text="${'Vence: ' + #temporals.format(assignment.dueAt, 'dd/MM/yyyy')}"
+                            >Vence</small>
+                        </div>
+                    </a>
+                </div>
+            </section>
+        </div>
+    </section>
+
+    <section class="form-panel assignment-history">
+        <div class="section-heading">
+            <div>
+                <h2>Historial de equipos de cómputo</h2>
+                <p>Todos los movimientos de equipo registrados para esta persona.</p>
+            </div>
+        </div>
+
+        <div class="empty-state" th:if="${#lists.isEmpty(profile.computerAssignmentHistory)}">
+            <h3>Sin movimientos de equipo</h3>
+            <p>No hay asignaciones de equipo registradas para esta persona.</p>
+        </div>
+
+        <div class="assignment-list" th:unless="${#lists.isEmpty(profile.computerAssignmentHistory)}">
+            <a
+                    class="assignment-item person-history-item"
+                    th:each="assignment : ${profile.computerAssignmentHistory}"
+                    th:href="@{/computers/{computerId}(computerId=${assignment.computer.id})}"
+            >
+                <div class="assignment-person">
+                    <strong th:text="${assignment.computer.host}">HOST-001</strong>
+                    <span th:text="${assignment.computer.brand + ' ' + assignment.computer.model}">Marca Modelo</span>
+                    <small th:text="${'Asset: ' + assignment.computer.asset + ' · ' + assignment.computer.site.name}">Asset · Ubicación</small>
+                </div>
+
+                <div class="assignment-status">
+                    <span
+                            class="status-badge"
+                            th:classappend="${assignment.assignmentType == T(com.assetcontrol.assignments.domain.AssignmentType).LOAN ? ' status-loaned' : ' status-assigned'}"
+                            th:text="${assignment.assignmentType == T(com.assetcontrol.assignments.domain.AssignmentType).LOAN ? 'Préstamo' : 'Asignación'}"
+                    >Asignación</span>
+                    <small th:text="${'Desde: ' + #temporals.format(assignment.assignedAt, 'dd/MM/yyyy')}">Desde</small>
+                    <small
+                            th:if="${assignment.active}"
+                            th:text="${assignment.assignmentType == T(com.assetcontrol.assignments.domain.AssignmentType).LOAN and assignment.dueDate != null ? 'Vence: ' + #temporals.format(assignment.dueDate, 'dd/MM/yyyy') : 'Activo'}"
+                    >Activo</small>
+                    <small
+                            th:unless="${assignment.active}"
+                            th:text="${'Devuelto: ' + #temporals.format(assignment.returnedAt, 'dd/MM/yyyy')}"
+                    >Devuelto</small>
+                </div>
+            </a>
+        </div>
+    </section>
+
+    <section class="form-panel assignment-history">
+        <div class="section-heading">
+            <div>
+                <h2>Historial de teléfonos</h2>
+                <p>Todos los movimientos de teléfono registrados para esta persona.</p>
+            </div>
+        </div>
+
+        <div class="empty-state" th:if="${#lists.isEmpty(profile.phoneAssignmentHistory)}">
+            <h3>Sin movimientos de teléfono</h3>
+            <p>No hay asignaciones de teléfono registradas para esta persona.</p>
+        </div>
+
+        <div class="assignment-list" th:unless="${#lists.isEmpty(profile.phoneAssignmentHistory)}">
+            <a
+                    class="assignment-item person-history-item"
+                    th:each="assignment : ${profile.phoneAssignmentHistory}"
+                    th:href="@{/phones/{phoneId}(phoneId=${assignment.phone.id})}"
+            >
+                <div class="assignment-person">
+                    <strong th:text="${assignment.phone.phoneLine != null ? assignment.phone.phoneLine.number : assignment.phone.imei}">Teléfono</strong>
+                    <span th:text="${assignment.phone.brand + ' ' + assignment.phone.model}">Marca Modelo</span>
+                    <small th:text="${'IMEI: ' + assignment.phone.imei + ' · ' + assignment.phone.site.name}">IMEI · Ubicación</small>
+                </div>
+
+                <div class="assignment-status">
+                    <span
+                            class="status-badge"
+                            th:classappend="${assignment.type == T(com.assetcontrol.phones.domain.PhoneAssignmentType).LOAN ? ' status-loaned' : ' status-assigned'}"
+                            th:text="${assignment.type.label}"
+                    >Asignación</span>
+                    <small th:text="${'Desde: ' + #temporals.format(assignment.assignedAt, 'dd/MM/yyyy')}">Desde</small>
+                    <small
+                            th:if="${assignment.returnedAt == null}"
+                            th:text="${assignment.type == T(com.assetcontrol.phones.domain.PhoneAssignmentType).LOAN and assignment.dueAt != null ? 'Vence: ' + #temporals.format(assignment.dueAt, 'dd/MM/yyyy') : 'Activo'}"
+                    >Activo</small>
+                    <small
+                            th:if="${assignment.returnedAt != null}"
+                            th:text="${'Devuelto: ' + #temporals.format(assignment.returnedAt, 'dd/MM/yyyy')}"
+                    >Devuelto</small>
+                </div>
+            </a>
+        </div>
+    </section>
+</main>
+</body>
+</html>
