@@ -1,0 +1,854 @@
+From 649d77471fc66d106ba57f98c1bc8155d9f961be Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Mon, 21 Sep 2026 13:37:49 -0400
+Subject: [PATCH 3/4] feat: add equipment and people inventory views
+
+---
+ .../ComputerAssignmentService.java            | 26 ++++++
+ .../domain/ComputerAssignmentRepository.java  | 37 +++++++-
+ .../application/ComputerService.java          |  7 +-
+ .../computers/domain/ComputerRepository.java  |  4 +-
+ .../computers/web/ComputerController.java     | 65 +++++++++----
+ .../phones/application/PhoneService.java      | 15 ++-
+ .../domain/PhoneAssignmentRepository.java     | 14 +--
+ .../phones/domain/PhoneRepository.java        | 36 ++++++++
+ .../phones/web/PhoneController.java           | 64 +++++++++++--
+ .../shared/web/InventoryView.java             |  6 ++
+ src/main/resources/static/css/forms.css       | 78 ++++++++++++++++
+ src/main/resources/static/css/tokens.css      |  3 +
+ .../resources/templates/computers/index.html  | 78 +++++++++++++++-
+ .../resources/templates/phones/index.html     | 92 ++++++++++++++++---
+ 14 files changed, 471 insertions(+), 54 deletions(-)
+ create mode 100644 src/main/java/com/assetcontrol/shared/web/InventoryView.java
+
+diff --git a/src/main/java/com/assetcontrol/assignments/application/ComputerAssignmentService.java b/src/main/java/com/assetcontrol/assignments/application/ComputerAssignmentService.java
+index 91f0d9b..6a8bf8a 100644
+--- a/src/main/java/com/assetcontrol/assignments/application/ComputerAssignmentService.java
++++ b/src/main/java/com/assetcontrol/assignments/application/ComputerAssignmentService.java
+@@ -226,4 +226,30 @@ public class ComputerAssignmentService {
+                 List.of(computerId)
+         ).stream().findFirst().orElse(null);
+     }
++
++    public List<Person> findPeopleWithActiveAssignments(
++            String query,
++            Long siteId
++    ) {
++        return assignmentRepository.findPeopleWithActiveAssignments(
++                query == null ? "" : query.trim(),
++                siteId
++        );
++    }
++
++    public Map<Long, List<ComputerAssignment>> findActiveByPersonIds(
++            Collection<Long> personIds
++    ) {
++        if (personIds.isEmpty()) {
++            return Map.of();
++        }
++
++        return assignmentRepository.findActiveByPersonIdsWithComputer(personIds)
++                .stream()
++                .collect(Collectors.groupingBy(
++                        assignment -> assignment.getPerson().getId(),
++                        LinkedHashMap::new,
++                        Collectors.toList()
++                ));
++    }
+ }
+diff --git a/src/main/java/com/assetcontrol/assignments/domain/ComputerAssignmentRepository.java b/src/main/java/com/assetcontrol/assignments/domain/ComputerAssignmentRepository.java
+index 18133e7..20e581b 100644
+--- a/src/main/java/com/assetcontrol/assignments/domain/ComputerAssignmentRepository.java
++++ b/src/main/java/com/assetcontrol/assignments/domain/ComputerAssignmentRepository.java
+@@ -1,5 +1,6 @@
+ package com.assetcontrol.assignments.domain;
+ 
++import com.assetcontrol.people.domain.Person;
+ import org.springframework.data.jpa.repository.JpaRepository;
+ import org.springframework.data.jpa.repository.Query;
+ import org.springframework.data.repository.query.Param;
+@@ -67,4 +68,38 @@ public interface ComputerAssignmentRepository
+     List<ComputerAssignment> findClosedByComputerIdsWithPerson(
+             @Param("computerIds") Collection<Long> computerIds
+     );
+-}
+\ No newline at end of file
++
++    @Query("""
++        SELECT assignment
++        FROM ComputerAssignment assignment
++        JOIN FETCH assignment.computer computer
++        JOIN FETCH computer.site
++        JOIN FETCH assignment.person
++        WHERE assignment.person.id IN :personIds
++        AND assignment.returnedAt IS NULL
++        ORDER BY assignment.person.fullName, computer.host
++        """)
++    List<ComputerAssignment> findActiveByPersonIdsWithComputer(
++            @Param("personIds") Collection<Long> personIds
++    );
++
++    @Query("""
++        SELECT DISTINCT person
++        FROM ComputerAssignment assignment
++        JOIN assignment.person person
++        WHERE assignment.returnedAt IS NULL
++        AND (:siteId IS NULL OR assignment.computer.site.id = :siteId)
++        AND (
++            :query = ''
++            OR LOWER(person.username) LIKE LOWER(CONCAT('%', :query, '%'))
++            OR LOWER(person.fullName) LIKE LOWER(CONCAT('%', :query, '%'))
++            OR LOWER(person.externalId) LIKE LOWER(CONCAT('%', :query, '%'))
++            OR LOWER(person.email) LIKE LOWER(CONCAT('%', :query, '%'))
++        )
++        ORDER BY person.fullName, person.username
++        """)
++    List<Person> findPeopleWithActiveAssignments(
++            @Param("query") String query,
++            @Param("siteId") Long siteId
++    );
++}
+diff --git a/src/main/java/com/assetcontrol/computers/application/ComputerService.java b/src/main/java/com/assetcontrol/computers/application/ComputerService.java
+index f209e89..f9d69e6 100644
+--- a/src/main/java/com/assetcontrol/computers/application/ComputerService.java
++++ b/src/main/java/com/assetcontrol/computers/application/ComputerService.java
+@@ -30,11 +30,12 @@ public class ComputerService {
+     public List<Computer> search(
+             String query,
+             ComputerStatus status,
+-            ComputerType type
++            ComputerType type,
++            Long siteId
+     ) {
+         String normalizedQuery = query == null ? "" : query.trim();
+ 
+-        return computerRepository.search(normalizedQuery, status, type);
++        return computerRepository.search(normalizedQuery, status, type, siteId);
+     }
+ 
+     public Computer findById(Long id) {
+@@ -140,4 +141,4 @@ public class ComputerService {
+                 "Asignado y Préstamo solo se establecen mediante una asignación."
+         );
+     }
+-}
+\ No newline at end of file
++}
+diff --git a/src/main/java/com/assetcontrol/computers/domain/ComputerRepository.java b/src/main/java/com/assetcontrol/computers/domain/ComputerRepository.java
+index e390bd1..6bf0d43 100644
+--- a/src/main/java/com/assetcontrol/computers/domain/ComputerRepository.java
++++ b/src/main/java/com/assetcontrol/computers/domain/ComputerRepository.java
+@@ -48,12 +48,14 @@ public interface ComputerRepository extends JpaRepository<Computer, Long> {
+         )
+         AND (:status IS NULL OR computer.status = :status)
+         AND (:type IS NULL OR computer.type = :type)
++        AND (:siteId IS NULL OR computer.site.id = :siteId)
+         ORDER BY computer.host
+         """)
+     List<Computer> search(
+             @Param("query") String query,
+             @Param("status") ComputerStatus status,
+-            @Param("type") ComputerType type
++            @Param("type") ComputerType type,
++            @Param("siteId") Long siteId
+     );
+ 
+     @Query("""
+diff --git a/src/main/java/com/assetcontrol/computers/web/ComputerController.java b/src/main/java/com/assetcontrol/computers/web/ComputerController.java
+index 7f721f7..b089bd3 100644
+--- a/src/main/java/com/assetcontrol/computers/web/ComputerController.java
++++ b/src/main/java/com/assetcontrol/computers/web/ComputerController.java
+@@ -12,6 +12,8 @@ import com.assetcontrol.computers.domain.ComputerType;
+ import com.assetcontrol.people.application.DuplicatePersonIdentifierException;
+ import com.assetcontrol.people.application.DuplicatePersonUsernameException;
+ import com.assetcontrol.people.application.PersonService;
++import com.assetcontrol.people.domain.Person;
++import com.assetcontrol.shared.web.InventoryView;
+ import com.assetcontrol.sites.application.SiteService;
+ import jakarta.validation.Valid;
+ import org.springframework.stereotype.Controller;
+@@ -26,6 +28,7 @@ import org.springframework.web.bind.annotation.RequestParam;
+ import com.assetcontrol.maintenance.application.ComputerMaintenanceService;
+ 
+ import java.util.List;
++import java.util.Map;
+ 
+ @Controller
+ @RequestMapping("/computers")
+@@ -59,30 +62,60 @@ public class ComputerController {
+             @RequestParam(defaultValue = "") String query,
+             @RequestParam(required = false) ComputerStatus status,
+             @RequestParam(required = false) ComputerType type,
++            @RequestParam(required = false) Long siteId,
++            @RequestParam(defaultValue = "EQUIPMENT") InventoryView view,
+             Model model
+     ) {
+-        List<Computer> computers = computerService.search(query, status, type);
++        if (view == InventoryView.EQUIPMENT) {
++            List<Computer> computers = computerService.search(
++                    query,
++                    status,
++                    type,
++                    siteId
++            );
+ 
+-        List<Long> availableComputerIds = computers.stream()
+-                .filter(computer -> computer.getStatus() == ComputerStatus.AVAILABLE)
+-                .map(Computer::getId)
+-                .toList();
++            List<Long> availableComputerIds = computers.stream()
++                    .filter(computer -> computer.getStatus() == ComputerStatus.AVAILABLE)
++                    .map(Computer::getId)
++                    .toList();
++
++            model.addAttribute("computers", computers);
++            model.addAttribute(
++                    "activeAssignmentsByComputerId",
++                    assignmentService.findActiveByComputerIds(
++                            computers.stream().map(Computer::getId).toList()
++                    )
++            );
++            model.addAttribute(
++                    "lastClosedAssignmentByComputerId",
++                    assignmentService.findLastClosedByComputerIds(availableComputerIds)
++            );
++            model.addAttribute("peopleWithAssets", List.of());
++            model.addAttribute("activeAssignmentsByPersonId", Map.of());
++        } else {
++            List<Person> people = assignmentService.findPeopleWithActiveAssignments(
++                    query,
++                    siteId
++            );
+ 
+-        model.addAttribute("computers", computers);
+-        model.addAttribute(
+-                "activeAssignmentsByComputerId",
+-                assignmentService.findActiveByComputerIds(
+-                        computers.stream().map(Computer::getId).toList()
+-                )
+-        );
++            model.addAttribute("computers", List.of());
++            model.addAttribute("activeAssignmentsByComputerId", Map.of());
++            model.addAttribute("lastClosedAssignmentByComputerId", Map.of());
++            model.addAttribute("peopleWithAssets", people);
++            model.addAttribute(
++                    "activeAssignmentsByPersonId",
++                    assignmentService.findActiveByPersonIds(
++                            people.stream().map(Person::getId).toList()
++                    )
++            );
++        }
+ 
+-        model.addAttribute(
+-                "lastClosedAssignmentByComputerId",
+-                assignmentService.findLastClosedByComputerIds(availableComputerIds)
+-        );
+         model.addAttribute("query", query);
+         model.addAttribute("selectedStatus", status);
+         model.addAttribute("selectedType", type);
++        model.addAttribute("selectedSiteId", siteId);
++        model.addAttribute("view", view);
++        model.addAttribute("sites", siteService.findAllActive());
+         model.addAttribute("computerStatuses", ComputerStatus.values());
+         model.addAttribute("computerTypes", ComputerType.values());
+ 
+diff --git a/src/main/java/com/assetcontrol/phones/application/PhoneService.java b/src/main/java/com/assetcontrol/phones/application/PhoneService.java
+index f3c7b20..e5bdad2 100644
+--- a/src/main/java/com/assetcontrol/phones/application/PhoneService.java
++++ b/src/main/java/com/assetcontrol/phones/application/PhoneService.java
+@@ -36,6 +36,19 @@ public class PhoneService {
+         return phoneRepository.findAllWithDetails();
+     }
+ 
++    @Transactional(readOnly = true)
++    public List<Phone> search(
++            String query,
++            PhoneStatus status,
++            Long siteId
++    ) {
++        return phoneRepository.search(
++                query == null ? "" : query.trim(),
++                status,
++                siteId
++        );
++    }
++
+     @Transactional(readOnly = true)
+     public Phone findById(Long phoneId) {
+         return phoneRepository.findByIdWithDetails(phoneId)
+@@ -194,4 +207,4 @@ public class PhoneService {
+     private String normalizeLineNumber(String value) {
+         return normalizeRequired(value).replaceAll("[\\s()-]", "");
+     }
+-}
+\ No newline at end of file
++}
+diff --git a/src/main/java/com/assetcontrol/phones/domain/PhoneAssignmentRepository.java b/src/main/java/com/assetcontrol/phones/domain/PhoneAssignmentRepository.java
+index 010c644..74c8923 100644
+--- a/src/main/java/com/assetcontrol/phones/domain/PhoneAssignmentRepository.java
++++ b/src/main/java/com/assetcontrol/phones/domain/PhoneAssignmentRepository.java
+@@ -1,5 +1,6 @@
+ package com.assetcontrol.phones.domain;
+ 
++import com.assetcontrol.people.domain.Person;
+ import org.springframework.data.jpa.repository.JpaRepository;
+ import org.springframework.data.jpa.repository.Query;
+ import org.springframework.data.repository.query.Param;
+@@ -75,18 +76,19 @@ public interface PhoneAssignmentRepository extends JpaRepository<PhoneAssignment
+     );
+ 
+     @Query("""
+-            SELECT DISTINCT assignment.person
++            SELECT DISTINCT person
+             FROM PhoneAssignment assignment
++            JOIN assignment.person person
+             WHERE assignment.returnedAt IS NULL
+             AND (:siteId IS NULL OR assignment.phone.site.id = :siteId)
+             AND (
+                 :query = ''
+-                OR LOWER(assignment.person.username) LIKE LOWER(CONCAT('%', :query, '%'))
+-                OR LOWER(assignment.person.fullName) LIKE LOWER(CONCAT('%', :query, '%'))
+-                OR LOWER(assignment.person.externalId) LIKE LOWER(CONCAT('%', :query, '%'))
+-                OR LOWER(assignment.person.email) LIKE LOWER(CONCAT('%', :query, '%'))
++                OR LOWER(person.username) LIKE LOWER(CONCAT('%', :query, '%'))
++                OR LOWER(person.fullName) LIKE LOWER(CONCAT('%', :query, '%'))
++                OR LOWER(person.externalId) LIKE LOWER(CONCAT('%', :query, '%'))
++                OR LOWER(person.email) LIKE LOWER(CONCAT('%', :query, '%'))
+             )
+-            ORDER BY assignment.person.fullName, assignment.person.username
++            ORDER BY person.fullName, person.username
+             """)
+     List<Person> findPeopleWithActiveAssignments(
+             @Param("query") String query,
+diff --git a/src/main/java/com/assetcontrol/phones/domain/PhoneRepository.java b/src/main/java/com/assetcontrol/phones/domain/PhoneRepository.java
+index 78e9f29..bf98d5b 100644
+--- a/src/main/java/com/assetcontrol/phones/domain/PhoneRepository.java
++++ b/src/main/java/com/assetcontrol/phones/domain/PhoneRepository.java
+@@ -28,6 +28,42 @@ public interface PhoneRepository extends JpaRepository<Phone, Long> {
+             """)
+     List<Phone> findAllWithDetails();
+ 
++    @Query("""
++            SELECT phone
++            FROM Phone phone
++            JOIN FETCH phone.site
++            LEFT JOIN FETCH phone.phoneLine phoneLine
++            WHERE (
++                :query = ''
++                OR LOWER(phone.imei) LIKE LOWER(CONCAT('%', :query, '%'))
++                OR LOWER(phone.brand) LIKE LOWER(CONCAT('%', :query, '%'))
++                OR LOWER(phone.model) LIKE LOWER(CONCAT('%', :query, '%'))
++                OR LOWER(phone.site.name) LIKE LOWER(CONCAT('%', :query, '%'))
++                OR LOWER(COALESCE(phoneLine.number, '')) LIKE LOWER(CONCAT('%', :query, '%'))
++                OR EXISTS (
++                    SELECT assignment
++                    FROM PhoneAssignment assignment
++                    JOIN assignment.person person
++                    WHERE assignment.phone = phone
++                    AND assignment.returnedAt IS NULL
++                    AND (
++                        LOWER(person.username) LIKE LOWER(CONCAT('%', :query, '%'))
++                        OR LOWER(person.fullName) LIKE LOWER(CONCAT('%', :query, '%'))
++                        OR LOWER(person.externalId) LIKE LOWER(CONCAT('%', :query, '%'))
++                        OR LOWER(person.email) LIKE LOWER(CONCAT('%', :query, '%'))
++                    )
++                )
++            )
++            AND (:status IS NULL OR phone.status = :status)
++            AND (:siteId IS NULL OR phone.site.id = :siteId)
++            ORDER BY phone.imei
++            """)
++    List<Phone> search(
++            @Param("query") String query,
++            @Param("status") PhoneStatus status,
++            @Param("siteId") Long siteId
++    );
++
+     @Query("""
+             SELECT phone
+             FROM Phone phone
+diff --git a/src/main/java/com/assetcontrol/phones/web/PhoneController.java b/src/main/java/com/assetcontrol/phones/web/PhoneController.java
+index 55953e7..265a02a 100644
+--- a/src/main/java/com/assetcontrol/phones/web/PhoneController.java
++++ b/src/main/java/com/assetcontrol/phones/web/PhoneController.java
+@@ -10,6 +10,8 @@ import com.assetcontrol.phones.domain.PhoneStatus;
+ import com.assetcontrol.phones.maintenance.application.PhoneMaintenanceService;
+ import com.assetcontrol.people.application.DuplicatePersonIdentifierException;
+ import com.assetcontrol.people.application.DuplicatePersonUsernameException;
++import com.assetcontrol.people.domain.Person;
++import com.assetcontrol.shared.web.InventoryView;
+ import jakarta.validation.Valid;
+ import org.springframework.stereotype.Controller;
+ import org.springframework.ui.Model;
+@@ -19,9 +21,11 @@ import org.springframework.web.bind.annotation.ModelAttribute;
+ import org.springframework.web.bind.annotation.PathVariable;
+ import org.springframework.web.bind.annotation.PostMapping;
+ import org.springframework.web.bind.annotation.RequestMapping;
++import org.springframework.web.bind.annotation.RequestParam;
+ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+ 
+ import java.util.List;
++import java.util.Map;
+ 
+ @Controller
+ @RequestMapping("/phones")
+@@ -48,16 +52,58 @@ public class PhoneController {
+     }
+ 
+     @GetMapping
+-    public String showPhones(Model model) {
+-        List<Phone> phones = phoneService.findAll();
++    public String showPhones(
++            @RequestParam(defaultValue = "") String query,
++            @RequestParam(required = false) PhoneStatus status,
++            @RequestParam(required = false) Long siteId,
++            @RequestParam(defaultValue = "EQUIPMENT") InventoryView view,
++            Model model
++    ) {
++        if (view == InventoryView.EQUIPMENT) {
++            List<Phone> phones = phoneService.search(query, status, siteId);
+ 
+-        model.addAttribute("phones", phones);
+-        model.addAttribute(
+-                "primaryAssignmentsByPhoneId",
+-                phoneAssignmentService.findPrimaryActiveAssignments(
+-                        phones.stream().map(Phone::getId).toList()
+-                )
+-        );
++            List<Long> availablePhoneIds = phones.stream()
++                    .filter(phone -> phone.getStatus() == PhoneStatus.AVAILABLE)
++                    .map(Phone::getId)
++                    .toList();
++
++            model.addAttribute("phones", phones);
++            model.addAttribute(
++                    "activeAssignmentsByPhoneId",
++                    phoneAssignmentService.findActiveByPhoneIds(
++                            phones.stream().map(Phone::getId).toList()
++                    )
++            );
++            model.addAttribute(
++                    "lastClosedAssignmentByPhoneId",
++                    phoneAssignmentService.findLastClosedByPhoneIds(availablePhoneIds)
++            );
++            model.addAttribute("peopleWithAssets", List.of());
++            model.addAttribute("activeAssignmentsByPersonId", Map.of());
++        } else {
++            List<Person> people = phoneAssignmentService.findPeopleWithActiveAssignments(
++                    query,
++                    siteId
++            );
++
++            model.addAttribute("phones", List.of());
++            model.addAttribute("activeAssignmentsByPhoneId", Map.of());
++            model.addAttribute("lastClosedAssignmentByPhoneId", Map.of());
++            model.addAttribute("peopleWithAssets", people);
++            model.addAttribute(
++                    "activeAssignmentsByPersonId",
++                    phoneAssignmentService.findActiveByPersonIds(
++                            people.stream().map(Person::getId).toList()
++                    )
++            );
++        }
++
++        model.addAttribute("query", query);
++        model.addAttribute("selectedStatus", status);
++        model.addAttribute("selectedSiteId", siteId);
++        model.addAttribute("view", view);
++        model.addAttribute("sites", siteService.findAllActive());
++        model.addAttribute("phoneStatuses", PhoneStatus.values());
+ 
+         return "phones/index";
+     }
+diff --git a/src/main/java/com/assetcontrol/shared/web/InventoryView.java b/src/main/java/com/assetcontrol/shared/web/InventoryView.java
+new file mode 100644
+index 0000000..74de223
+--- /dev/null
++++ b/src/main/java/com/assetcontrol/shared/web/InventoryView.java
+@@ -0,0 +1,6 @@
++package com.assetcontrol.shared.web;
++
++public enum InventoryView {
++    EQUIPMENT,
++    PEOPLE
++}
+diff --git a/src/main/resources/static/css/forms.css b/src/main/resources/static/css/forms.css
+index c1d8955..909c3b7 100644
+--- a/src/main/resources/static/css/forms.css
++++ b/src/main/resources/static/css/forms.css
+@@ -54,6 +54,35 @@
+     margin-bottom: 1.5rem;
+ }
+ 
++.filter-panel--inventory {
++    grid-template-columns: minmax(0, 1fr) repeat(3, minmax(150px, 190px)) auto;
++}
++
++.inventory-view-toggle {
++    display: inline-flex;
++    gap: 0.35rem;
++    margin-bottom: 1.25rem;
++    padding: 0.4rem;
++    border-radius: 1rem;
++    box-shadow: var(--shadow-pressed);
++}
++
++.inventory-view-toggle__option {
++    border-radius: 0.7rem;
++    color: var(--text-muted);
++    font-size: 0.9rem;
++    font-weight: 700;
++    padding: 0.65rem 1rem;
++    text-decoration: none;
++    transition: background-color 160ms ease, box-shadow 160ms ease, color 160ms ease;
++}
++
++.inventory-view-toggle__option--active {
++    background: var(--surface);
++    box-shadow: var(--shadow-raised-small);
++    color: var(--text-primary);
++}
++
+ .field-grid {
+     display: grid;
+     grid-template-columns: repeat(2, minmax(0, 1fr));
+@@ -153,6 +182,51 @@
+     gap: 0.8rem;
+ }
+ 
++.person-list {
++    display: grid;
++    gap: 1rem;
++}
++
++.person-item {
++    display: grid;
++    grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.2fr);
++    gap: 1.25rem;
++    border-radius: 1rem;
++    box-shadow: var(--shadow-pressed);
++    padding: 1rem;
++}
++
++.person-main-data,
++.person-assets,
++.person-asset {
++    display: grid;
++    gap: 0.35rem;
++}
++
++.person-main-data span,
++.person-main-data small,
++.person-asset span,
++.person-asset small {
++    color: var(--text-muted);
++}
++
++.person-assets {
++    align-content: start;
++}
++
++.person-asset {
++    border-radius: 0.8rem;
++    box-shadow: var(--shadow-raised-small);
++    padding: 0.85rem;
++    text-decoration: none;
++    transition: box-shadow 160ms ease, transform 160ms ease;
++}
++
++.person-asset:hover {
++    box-shadow: var(--shadow-raised);
++    transform: translateY(-2px);
++}
++
+ .computer-item,
+ .site-item,
+ .phone-item {
+@@ -481,6 +555,10 @@
+         grid-template-columns: 1fr;
+     }
+ 
++    .person-item {
++        grid-template-columns: 1fr;
++    }
++
+     .form-actions {
+         flex-direction: column-reverse;
+     }
+diff --git a/src/main/resources/static/css/tokens.css b/src/main/resources/static/css/tokens.css
+index 3194fd3..c13e630 100644
+--- a/src/main/resources/static/css/tokens.css
++++ b/src/main/resources/static/css/tokens.css
+@@ -16,6 +16,9 @@
+     --radius-large: 28px;
+     --radius-medium: 18px;
+     --transition: 180ms ease;
++    --surface: var(--color-surface);
++    --text-primary: var(--color-text);
++    --text-muted: var(--color-text-muted);
+ }
+ 
+ :root[data-theme="dark"] {
+diff --git a/src/main/resources/templates/computers/index.html b/src/main/resources/templates/computers/index.html
+index 6110962..98aad74 100644
+--- a/src/main/resources/templates/computers/index.html
++++ b/src/main/resources/templates/computers/index.html
+@@ -18,15 +18,43 @@
+         </div>
+     </section>
+ 
+-    <form class="filter-panel" th:action="@{/computers}" method="get">
++    <nav class="inventory-view-toggle" aria-label="Vista del inventario">
++        <a
++                class="inventory-view-toggle__option"
++                th:classappend="${view == T(com.assetcontrol.shared.web.InventoryView).EQUIPMENT ? ' inventory-view-toggle__option--active' : ''}"
++                th:href="@{/computers(view='EQUIPMENT',query=${query},status=${selectedStatus},type=${selectedType},siteId=${selectedSiteId})}"
++        >Equipos</a>
++        <a
++                class="inventory-view-toggle__option"
++                th:classappend="${view == T(com.assetcontrol.shared.web.InventoryView).PEOPLE ? ' inventory-view-toggle__option--active' : ''}"
++                th:href="@{/computers(view='PEOPLE',query=${query},siteId=${selectedSiteId})}"
++        >Personas</a>
++    </nav>
++
++    <form class="filter-panel filter-panel--inventory" th:action="@{/computers}" method="get">
++        <input type="hidden" name="view" th:value="${view}">
++
+         <input
+                 type="search"
+                 name="query"
+                 th:value="${query}"
+-                placeholder="Hostname, usuario, nombre, asset, marca o modelo"
++                th:placeholder="${view == T(com.assetcontrol.shared.web.InventoryView).EQUIPMENT ? 'Hostname, usuario, nombre, asset, marca o modelo' : 'Usuario, nombre, ID o correo'}"
+         >
+ 
+-        <select name="status">
++        <select name="siteId">
++            <option value="">Todas las ubicaciones</option>
++            <option
++                    th:each="site : ${sites}"
++                    th:value="${site.id}"
++                    th:selected="${site.id == selectedSiteId}"
++                    th:text="${site.name}"
++            ></option>
++        </select>
++
++        <select
++                name="status"
++                th:if="${view == T(com.assetcontrol.shared.web.InventoryView).EQUIPMENT}"
++        >
+             <option value="">Todos los estados</option>
+             <option
+                     th:each="status : ${computerStatuses}"
+@@ -36,7 +64,10 @@
+             ></option>
+         </select>
+ 
+-        <select name="type">
++        <select
++                name="type"
++                th:if="${view == T(com.assetcontrol.shared.web.InventoryView).EQUIPMENT}"
++        >
+             <option value="">Todos los tipos</option>
+             <option
+                     th:each="type : ${computerTypes}"
+@@ -49,7 +80,10 @@
+         <button class="secondary-button" type="submit">Filtrar</button>
+     </form>
+ 
+-    <section class="inventory-panel">
++    <section
++            class="inventory-panel"
++            th:if="${view == T(com.assetcontrol.shared.web.InventoryView).EQUIPMENT}"
++    >
+         <div class="empty-state" th:if="${#lists.isEmpty(computers)}">
+             <h2>No se encontraron equipos</h2>
+             <p>Registra un equipo o ajusta los filtros de búsqueda.</p>
+@@ -97,6 +131,40 @@
+             </a>
+         </div>
+     </section>
++
++    <section
++            class="inventory-panel"
++            th:if="${view == T(com.assetcontrol.shared.web.InventoryView).PEOPLE}"
++    >
++        <div class="empty-state" th:if="${#lists.isEmpty(peopleWithAssets)}">
++            <h2>No se encontraron personas con equipos asignados</h2>
++            <p>Ajusta la búsqueda o los filtros de ubicación.</p>
++        </div>
++
++        <div class="person-list" th:unless="${#lists.isEmpty(peopleWithAssets)}">
++            <article class="person-item" th:each="person : ${peopleWithAssets}">
++                <div class="person-main-data">
++                    <strong th:text="${person.fullName}">Nombre completo</strong>
++                    <span th:text="${person.username + ' · ' + person.externalId}">usuario · ID</span>
++                    <small th:text="${person.email}">correo</small>
++                    <small th:if="${person.jobTitle != null}" th:text="${person.jobTitle}">Puesto</small>
++                    <small th:if="${person.department != null}" th:text="${person.department}">Área</small>
++                </div>
++
++                <div class="person-assets">
++                    <a
++                            class="person-asset"
++                            th:each="assignment : ${activeAssignmentsByPersonId.get(person.id)}"
++                            th:href="@{/computers/{id}(id=${assignment.computer.id})}"
++                    >
++                        <strong th:text="${assignment.computer.host}">HOST-001</strong>
++                        <span th:text="${assignment.computer.brand + ' ' + assignment.computer.model}">Marca Modelo</span>
++                        <small th:text="${'Asset: ' + assignment.computer.asset + ' · ' + assignment.computer.site.name}">Asset · Ubicación</small>
++                    </a>
++                </div>
++            </article>
++        </div>
++    </section>
+ </main>
+ </body>
+ </html>
+diff --git a/src/main/resources/templates/phones/index.html b/src/main/resources/templates/phones/index.html
+index 26569c4..3897110 100644
+--- a/src/main/resources/templates/phones/index.html
++++ b/src/main/resources/templates/phones/index.html
+@@ -18,15 +18,43 @@
+         </div>
+     </section>
+ 
+-    <form class="filter-panel" th:action="@{/phones}" method="get">
++    <nav class="inventory-view-toggle" aria-label="Vista del inventario">
++        <a
++                class="inventory-view-toggle__option"
++                th:classappend="${view == T(com.assetcontrol.shared.web.InventoryView).EQUIPMENT ? ' inventory-view-toggle__option--active' : ''}"
++                th:href="@{/phones(view='EQUIPMENT',query=${query},status=${selectedStatus},siteId=${selectedSiteId})}"
++        >Teléfonos</a>
++        <a
++                class="inventory-view-toggle__option"
++                th:classappend="${view == T(com.assetcontrol.shared.web.InventoryView).PEOPLE ? ' inventory-view-toggle__option--active' : ''}"
++                th:href="@{/phones(view='PEOPLE',query=${query},siteId=${selectedSiteId})}"
++        >Personas</a>
++    </nav>
++
++    <form class="filter-panel filter-panel--inventory" th:action="@{/phones}" method="get">
++        <input type="hidden" name="view" th:value="${view}">
++
+         <input
+                 type="search"
+                 name="query"
+                 th:value="${query}"
+-                placeholder="IMEI, marca, modelo, línea o ubicación"
++                th:placeholder="${view == T(com.assetcontrol.shared.web.InventoryView).EQUIPMENT ? 'IMEI, usuario, marca, modelo, línea o ubicación' : 'Usuario, nombre, ID o correo'}"
+         >
+ 
+-        <select name="status">
++        <select name="siteId">
++            <option value="">Todas las ubicaciones</option>
++            <option
++                    th:each="site : ${sites}"
++                    th:value="${site.id}"
++                    th:selected="${site.id == selectedSiteId}"
++                    th:text="${site.name}"
++            ></option>
++        </select>
++
++        <select
++                name="status"
++                th:if="${view == T(com.assetcontrol.shared.web.InventoryView).EQUIPMENT}"
++        >
+             <option value="">Todos los estados</option>
+             <option
+                     th:each="status : ${phoneStatuses}"
+@@ -42,7 +70,10 @@
+     <p class="alert alert--success" th:if="${successMessage}" th:text="${successMessage}"></p>
+     <p class="alert alert--error" th:if="${errorMessage}" th:text="${errorMessage}"></p>
+ 
+-    <section class="inventory-panel">
++    <section
++            class="inventory-panel"
++            th:if="${view == T(com.assetcontrol.shared.web.InventoryView).EQUIPMENT}"
++    >
+         <div class="empty-state" th:if="${#lists.isEmpty(phones)}">
+             <h2>No se encontraron teléfonos</h2>
+             <p>Registra un teléfono o ajusta los filtros de búsqueda.</p>
+@@ -55,24 +86,27 @@
+                     th:href="@{/phones/{phoneId}(phoneId=${phone.id})}"
+             >
+                 <div class="phone-main-data">
+-                    <strong th:text="${phone.phoneLine != null ? phone.phoneLine.number : phone.imei}"></strong>
+-                    <span th:text="${phone.brand + ' ' + phone.model}"></span>
+-                    <small th:text="${'IMEI: ' + phone.imei + ' · ' + phone.site.name}"></small>
++                    <strong th:text="${phone.phoneLine != null ? phone.phoneLine.number : phone.imei}">Teléfono</strong>
++                    <span th:text="${phone.brand + ' ' + phone.model}">Marca Modelo</span>
++                    <small th:text="${'IMEI: ' + phone.imei + ' · ' + phone.site.name}">IMEI · Ubicación</small>
+ 
+                     <div
+                             class="phone-users"
+-                            th:if="${primaryAssignmentsByPhoneId != null and primaryAssignmentsByPhoneId.containsKey(phone.id)}"
++                            th:if="${activeAssignmentsByPhoneId.containsKey(phone.id)}"
+                     >
+                         <span>Usuario:</span>
+-                        <strong th:text="${primaryAssignmentsByPhoneId.get(phone.id).person.username}"></strong>
++                        <strong
++                                th:each="assignment, iteration : ${activeAssignmentsByPhoneId.get(phone.id)}"
++                                th:text="${assignment.person.username + (iteration.last ? '' : ', ')}"
++                        >usuario</strong>
+                     </div>
+ 
+                     <div
+                             class="phone-last-user"
+-                            th:if="${phone.status.name() == 'AVAILABLE' and lastClosedAssignmentByPhoneId != null and lastClosedAssignmentByPhoneId.containsKey(phone.id)}"
++                            th:if="${phone.status == T(com.assetcontrol.phones.domain.PhoneStatus).AVAILABLE and lastClosedAssignmentByPhoneId.containsKey(phone.id)}"
+                     >
+                         <span>Último usuario:</span>
+-                        <strong th:text="${lastClosedAssignmentByPhoneId.get(phone.id).person.username}"></strong>
++                        <strong th:text="${lastClosedAssignmentByPhoneId.get(phone.id).person.username}">usuario</strong>
+                     </div>
+                 </div>
+ 
+@@ -80,10 +114,44 @@
+                         class="status-badge"
+                         th:classappend="${' status-' + #strings.toLowerCase(phone.status.name())}"
+                         th:text="${phone.status.label}"
+-                ></span>
++                >Disponible</span>
+             </a>
+         </div>
+     </section>
++
++    <section
++            class="inventory-panel"
++            th:if="${view == T(com.assetcontrol.shared.web.InventoryView).PEOPLE}"
++    >
++        <div class="empty-state" th:if="${#lists.isEmpty(peopleWithAssets)}">
++            <h2>No se encontraron personas con teléfonos asignados</h2>
++            <p>Ajusta la búsqueda o los filtros de ubicación.</p>
++        </div>
++
++        <div class="person-list" th:unless="${#lists.isEmpty(peopleWithAssets)}">
++            <article class="person-item" th:each="person : ${peopleWithAssets}">
++                <div class="person-main-data">
++                    <strong th:text="${person.fullName}">Nombre completo</strong>
++                    <span th:text="${person.username + ' · ' + person.externalId}">usuario · ID</span>
++                    <small th:text="${person.email}">correo</small>
++                    <small th:if="${person.jobTitle != null}" th:text="${person.jobTitle}">Puesto</small>
++                    <small th:if="${person.department != null}" th:text="${person.department}">Área</small>
++                </div>
++
++                <div class="person-assets">
++                    <a
++                            class="person-asset"
++                            th:each="assignment : ${activeAssignmentsByPersonId.get(person.id)}"
++                            th:href="@{/phones/{phoneId}(phoneId=${assignment.phone.id})}"
++                    >
++                        <strong th:text="${assignment.phone.phoneLine != null ? assignment.phone.phoneLine.number : assignment.phone.imei}">Teléfono</strong>
++                        <span th:text="${assignment.phone.brand + ' ' + assignment.phone.model}">Marca Modelo</span>
++                        <small th:text="${'IMEI: ' + assignment.phone.imei + ' · ' + assignment.phone.site.name}">IMEI · Ubicación</small>
++                    </a>
++                </div>
++            </article>
++        </div>
++    </section>
+ </main>
+ </body>
+ </html>
+-- 
+2.51.1
+
