@@ -1,20 +1,22 @@
-# Aplicar los parches
+# Vista completa de personas
 
-Los cuatro parches parten del commit remoto `eefdeaf`.
+Este parche se aplica después de los cuatro parches de paridad de inventario.
 
-1. Copia los archivos de esta carpeta a la raíz de `C:\Proyectos\asset-control`.
-2. Confirma que no tienes cambios pendientes con `git status`.
-3. Si Git indica que existe una operación de `git am` anterior, ejecuta `git am --abort` una sola vez.
-4. Ejecuta estos comandos en PowerShell:
+Desde la raíz del proyecto:
 
 ```powershell
-git pull --ff-only
-git am --3way .\0001-feat-import-reference-inventory-details.patch .\0002-feat-align-phone-lifecycle-with-computers.patch .\0003-feat-add-equipment-and-people-inventory-views.patch .\0004-docs-update-inventory-import-guide.patch
-$javaHome = (java -XshowSettings:properties -version 2>&1 | Select-String "java.home" | ForEach-Object { $_.Line -replace ".*=\s*", "" }).Trim()
-$env:JAVA_HOME = $javaHome
+git status
+git am --3way .\0001-feat-add-complete-person-detail-view.patch
 .\mvnw.cmd -DskipTests package
+git push
 ```
 
-5. Inicia la aplicación con `./mvnw.cmd spring-boot:run` y abre `http://localhost:8080`.
+La vista queda disponible al abrir una persona desde el selector Personas de Equipos de cómputo o Teléfonos.
 
-Si `git am` se detiene por un conflicto, ejecuta `git am --abort` y no continúes con el siguiente parche.
+Si `git am` se detiene por un conflicto, no apliques el parche otra vez. Ejecuta:
+
+```powershell
+git status
+```
+
+Y comparte la salida antes de continuar.

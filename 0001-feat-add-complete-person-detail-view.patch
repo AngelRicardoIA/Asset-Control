@@ -1,0 +1,708 @@
+From 15b292a7b6a23f57f55208037fcb7885723c1490 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Mon, 21 Sep 2026 14:23:24 -0400
+Subject: [PATCH] feat: add complete person detail view
+
+---
+ .../ComputerAssignmentService.java            |   4 +
+ .../domain/ComputerAssignmentRepository.java  |  13 +
+ .../application/PersonAssetProfile.java       |  52 ++++
+ .../application/PersonNotFoundException.java  |   8 +
+ .../application/PersonProfileService.java     |  36 +++
+ .../people/application/PersonService.java     |   7 +-
+ .../people/web/PersonController.java          |  26 ++
+ .../application/PhoneAssignmentService.java   |   5 +
+ .../domain/PhoneAssignmentRepository.java     |  14 ++
+ src/main/resources/static/css/forms.css       | 104 ++++++++
+ .../resources/templates/computers/index.html  |   8 +-
+ .../resources/templates/people/detail.html    | 233 ++++++++++++++++++
+ .../resources/templates/phones/index.html     |   8 +-
+ 13 files changed, 513 insertions(+), 5 deletions(-)
+ create mode 100644 src/main/java/com/assetcontrol/people/application/PersonAssetProfile.java
+ create mode 100644 src/main/java/com/assetcontrol/people/application/PersonNotFoundException.java
+ create mode 100644 src/main/java/com/assetcontrol/people/application/PersonProfileService.java
+ create mode 100644 src/main/java/com/assetcontrol/people/web/PersonController.java
+ create mode 100644 src/main/resources/templates/people/detail.html
+
+diff --git a/src/main/java/com/assetcontrol/assignments/application/ComputerAssignmentService.java b/src/main/java/com/assetcontrol/assignments/application/ComputerAssignmentService.java
+index 6a8bf8a..840ba01 100644
+--- a/src/main/java/com/assetcontrol/assignments/application/ComputerAssignmentService.java
++++ b/src/main/java/com/assetcontrol/assignments/application/ComputerAssignmentService.java
+@@ -48,6 +48,10 @@ public class ComputerAssignmentService {
+         return assignmentRepository.findHistoryByComputerId(computerId);
+     }
+ 
++    public List<ComputerAssignment> findHistoryByPersonId(Long personId) {
++        return assignmentRepository.findHistoryByPersonIdWithComputer(personId);
++    }
++
+     @Transactional
+     public ComputerAssignment create(CreateComputerAssignmentCommand command) {
+         Computer computer = computerRepository.findById(command.computerId())
+diff --git a/src/main/java/com/assetcontrol/assignments/domain/ComputerAssignmentRepository.java b/src/main/java/com/assetcontrol/assignments/domain/ComputerAssignmentRepository.java
+index 20e581b..4bbaec7 100644
+--- a/src/main/java/com/assetcontrol/assignments/domain/ComputerAssignmentRepository.java
++++ b/src/main/java/com/assetcontrol/assignments/domain/ComputerAssignmentRepository.java
+@@ -23,6 +23,19 @@ public interface ComputerAssignmentRepository
+             @Param("computerId") Long computerId
+     );
+ 
++    @Query("""
++            SELECT assignment
++            FROM ComputerAssignment assignment
++            JOIN FETCH assignment.computer computer
++            JOIN FETCH computer.site
++            JOIN FETCH assignment.person
++            WHERE assignment.person.id = :personId
++            ORDER BY assignment.assignedAt DESC, assignment.id DESC
++            """)
++    List<ComputerAssignment> findHistoryByPersonIdWithComputer(
++            @Param("personId") Long personId
++    );
++
+     boolean existsByComputer_IdAndPerson_IdAndReturnedAtIsNull(
+             Long computerId,
+             Long personId
+diff --git a/src/main/java/com/assetcontrol/people/application/PersonAssetProfile.java b/src/main/java/com/assetcontrol/people/application/PersonAssetProfile.java
+new file mode 100644
+index 0000000..737ab3c
+--- /dev/null
++++ b/src/main/java/com/assetcontrol/people/application/PersonAssetProfile.java
+@@ -0,0 +1,52 @@
++package com.assetcontrol.people.application;
++
++import com.assetcontrol.assignments.domain.ComputerAssignment;
++import com.assetcontrol.people.domain.Person;
++import com.assetcontrol.phones.domain.PhoneAssignment;
++
++import java.util.List;
++
++public class PersonAssetProfile {
++
++    private final Person person;
++    private final List<ComputerAssignment> computerAssignmentHistory;
++    private final List<PhoneAssignment> phoneAssignmentHistory;
++    private final List<ComputerAssignment> activeComputerAssignments;
++    private final List<PhoneAssignment> activePhoneAssignments;
++
++    public PersonAssetProfile(
++            Person person,
++            List<ComputerAssignment> computerAssignmentHistory,
++            List<PhoneAssignment> phoneAssignmentHistory
++    ) {
++        this.person = person;
++        this.computerAssignmentHistory = List.copyOf(computerAssignmentHistory);
++        this.phoneAssignmentHistory = List.copyOf(phoneAssignmentHistory);
++        this.activeComputerAssignments = this.computerAssignmentHistory.stream()
++                .filter(ComputerAssignment::isActive)
++                .toList();
++        this.activePhoneAssignments = this.phoneAssignmentHistory.stream()
++                .filter(assignment -> assignment.getReturnedAt() == null)
++                .toList();
++    }
++
++    public Person getPerson() {
++        return person;
++    }
++
++    public List<ComputerAssignment> getComputerAssignmentHistory() {
++        return computerAssignmentHistory;
++    }
++
++    public List<PhoneAssignment> getPhoneAssignmentHistory() {
++        return phoneAssignmentHistory;
++    }
++
++    public List<ComputerAssignment> getActiveComputerAssignments() {
++        return activeComputerAssignments;
++    }
++
++    public List<PhoneAssignment> getActivePhoneAssignments() {
++        return activePhoneAssignments;
++    }
++}
+diff --git a/src/main/java/com/assetcontrol/people/application/PersonNotFoundException.java b/src/main/java/com/assetcontrol/people/application/PersonNotFoundException.java
+new file mode 100644
+index 0000000..c39e456
+--- /dev/null
++++ b/src/main/java/com/assetcontrol/people/application/PersonNotFoundException.java
+@@ -0,0 +1,8 @@
++package com.assetcontrol.people.application;
++
++public class PersonNotFoundException extends RuntimeException {
++
++    public PersonNotFoundException(Long personId) {
++        super("No se encontró la persona con identificador " + personId);
++    }
++}
+diff --git a/src/main/java/com/assetcontrol/people/application/PersonProfileService.java b/src/main/java/com/assetcontrol/people/application/PersonProfileService.java
+new file mode 100644
+index 0000000..6491e29
+--- /dev/null
++++ b/src/main/java/com/assetcontrol/people/application/PersonProfileService.java
+@@ -0,0 +1,36 @@
++package com.assetcontrol.people.application;
++
++import com.assetcontrol.assignments.application.ComputerAssignmentService;
++import com.assetcontrol.people.domain.Person;
++import com.assetcontrol.phones.application.PhoneAssignmentService;
++import org.springframework.stereotype.Service;
++import org.springframework.transaction.annotation.Transactional;
++
++@Service
++@Transactional(readOnly = true)
++public class PersonProfileService {
++
++    private final PersonService personService;
++    private final ComputerAssignmentService computerAssignmentService;
++    private final PhoneAssignmentService phoneAssignmentService;
++
++    public PersonProfileService(
++            PersonService personService,
++            ComputerAssignmentService computerAssignmentService,
++            PhoneAssignmentService phoneAssignmentService
++    ) {
++        this.personService = personService;
++        this.computerAssignmentService = computerAssignmentService;
++        this.phoneAssignmentService = phoneAssignmentService;
++    }
++
++    public PersonAssetProfile findByPersonId(Long personId) {
++        Person person = personService.findById(personId);
++
++        return new PersonAssetProfile(
++                person,
++                computerAssignmentService.findHistoryByPersonId(personId),
++                phoneAssignmentService.findHistoryByPersonId(personId)
++        );
++    }
++}
+diff --git a/src/main/java/com/assetcontrol/people/application/PersonService.java b/src/main/java/com/assetcontrol/people/application/PersonService.java
+index f586d4a..d205063 100644
+--- a/src/main/java/com/assetcontrol/people/application/PersonService.java
++++ b/src/main/java/com/assetcontrol/people/application/PersonService.java
+@@ -22,6 +22,11 @@ public class PersonService {
+         return personRepository.findAllByOrderByFullNameAsc();
+     }
+ 
++    public Person findById(Long personId) {
++        return personRepository.findById(personId)
++                .orElseThrow(() -> new PersonNotFoundException(personId));
++    }
++
+     private String normalizeUsername(String value) {
+         return normalizeRequired(value, "nombre de usuario")
+                 .toLowerCase(Locale.ROOT);
+@@ -67,4 +72,4 @@ public class PersonService {
+ 
+         return normalized;
+     }
+-}
+\ No newline at end of file
++}
+diff --git a/src/main/java/com/assetcontrol/people/web/PersonController.java b/src/main/java/com/assetcontrol/people/web/PersonController.java
+new file mode 100644
+index 0000000..ace8ab0
+--- /dev/null
++++ b/src/main/java/com/assetcontrol/people/web/PersonController.java
+@@ -0,0 +1,26 @@
++package com.assetcontrol.people.web;
++
++import com.assetcontrol.people.application.PersonProfileService;
++import org.springframework.stereotype.Controller;
++import org.springframework.ui.Model;
++import org.springframework.web.bind.annotation.GetMapping;
++import org.springframework.web.bind.annotation.PathVariable;
++import org.springframework.web.bind.annotation.RequestMapping;
++
++@Controller
++@RequestMapping("/people")
++public class PersonController {
++
++    private final PersonProfileService personProfileService;
++
++    public PersonController(PersonProfileService personProfileService) {
++        this.personProfileService = personProfileService;
++    }
++
++    @GetMapping("/{personId}")
++    public String showPersonProfile(@PathVariable Long personId, Model model) {
++        model.addAttribute("profile", personProfileService.findByPersonId(personId));
++
++        return "people/detail";
++    }
++}
+diff --git a/src/main/java/com/assetcontrol/phones/application/PhoneAssignmentService.java b/src/main/java/com/assetcontrol/phones/application/PhoneAssignmentService.java
+index bea3716..c85ee59 100644
+--- a/src/main/java/com/assetcontrol/phones/application/PhoneAssignmentService.java
++++ b/src/main/java/com/assetcontrol/phones/application/PhoneAssignmentService.java
+@@ -60,6 +60,11 @@ public class PhoneAssignmentService {
+         return phoneAssignmentRepository.findHistoryByPhoneIdWithPerson(phoneId);
+     }
+ 
++    @Transactional(readOnly = true)
++    public List<PhoneAssignment> findHistoryByPersonId(Long personId) {
++        return phoneAssignmentRepository.findHistoryByPersonIdWithPhone(personId);
++    }
++
+     @Transactional(readOnly = true)
+     public Map<Long, PhoneAssignment> findPrimaryActiveAssignments(
+             Collection<Long> phoneIds
+diff --git a/src/main/java/com/assetcontrol/phones/domain/PhoneAssignmentRepository.java b/src/main/java/com/assetcontrol/phones/domain/PhoneAssignmentRepository.java
+index 74c8923..178b2c8 100644
+--- a/src/main/java/com/assetcontrol/phones/domain/PhoneAssignmentRepository.java
++++ b/src/main/java/com/assetcontrol/phones/domain/PhoneAssignmentRepository.java
+@@ -34,6 +34,20 @@ public interface PhoneAssignmentRepository extends JpaRepository<PhoneAssignment
+             """)
+     List<PhoneAssignment> findHistoryByPhoneIdWithPerson(@Param("phoneId") Long phoneId);
+ 
++    @Query("""
++            SELECT assignment
++            FROM PhoneAssignment assignment
++            JOIN FETCH assignment.phone phone
++            JOIN FETCH phone.site
++            LEFT JOIN FETCH phone.phoneLine
++            JOIN FETCH assignment.person
++            WHERE assignment.person.id = :personId
++            ORDER BY assignment.assignedAt DESC, assignment.id DESC
++            """)
++    List<PhoneAssignment> findHistoryByPersonIdWithPhone(
++            @Param("personId") Long personId
++    );
++
+     @Query("""
+             SELECT assignment
+             FROM PhoneAssignment assignment
+diff --git a/src/main/resources/static/css/forms.css b/src/main/resources/static/css/forms.css
+index 909c3b7..07a2f62 100644
+--- a/src/main/resources/static/css/forms.css
++++ b/src/main/resources/static/css/forms.css
+@@ -203,6 +203,25 @@
+     gap: 0.35rem;
+ }
+ 
++.person-main-data--link {
++    border-radius: 0.8rem;
++    color: inherit;
++    margin: -0.3rem;
++    padding: 0.3rem;
++    text-decoration: none;
++    transition: box-shadow 160ms ease, transform 160ms ease;
++}
++
++.person-main-data--link:hover {
++    box-shadow: var(--shadow-raised-small);
++    transform: translateY(-2px);
++}
++
++.person-main-data--link:focus-visible {
++    outline: 2px solid var(--accent);
++    outline-offset: 3px;
++}
++
+ .person-main-data span,
+ .person-main-data small,
+ .person-asset span,
+@@ -210,6 +229,12 @@
+     color: var(--text-muted);
+ }
+ 
++.person-main-data .person-profile-link-label {
++    color: var(--accent);
++    font-weight: 700;
++    margin-top: 0.2rem;
++}
++
+ .person-assets {
+     align-content: start;
+ }
+@@ -458,6 +483,72 @@
+     margin-bottom: 1.5rem;
+ }
+ 
++.person-assets-section {
++    margin-bottom: 1.5rem;
++}
++
++.person-profile-asset-grid {
++    display: grid;
++    grid-template-columns: repeat(2, minmax(0, 1fr));
++    gap: 1rem;
++}
++
++.person-profile-group,
++.person-profile-asset-list {
++    display: grid;
++    gap: 0.8rem;
++}
++
++.person-profile-group h3 {
++    margin: 0;
++}
++
++.person-profile-asset {
++    align-items: center;
++    color: inherit;
++    display: flex;
++    gap: 1rem;
++    justify-content: space-between;
++    border-radius: 0.9rem;
++    box-shadow: var(--shadow-pressed);
++    padding: 0.9rem;
++    text-decoration: none;
++    transition: box-shadow 160ms ease, transform 160ms ease;
++}
++
++.person-profile-asset:hover,
++.person-history-item:hover {
++    box-shadow: var(--shadow-raised);
++    transform: translateY(-2px);
++}
++
++.person-profile-asset__main,
++.person-profile-asset__status {
++    display: grid;
++    gap: 0.25rem;
++}
++
++.person-profile-asset__main span,
++.person-profile-asset__main small,
++.person-profile-asset__status small {
++    color: var(--text-muted);
++}
++
++.person-profile-asset__status {
++    justify-items: end;
++}
++
++.person-empty-state {
++    padding: 1rem;
++    text-align: left;
++}
++
++.person-history-item {
++    color: inherit;
++    text-decoration: none;
++    transition: box-shadow 160ms ease, transform 160ms ease;
++}
++
+ .maintenance-list {
+     display: grid;
+     gap: 0.8rem;
+@@ -559,6 +650,10 @@
+         grid-template-columns: 1fr;
+     }
+ 
++    .person-profile-asset-grid {
++        grid-template-columns: 1fr;
++    }
++
+     .form-actions {
+         flex-direction: column-reverse;
+     }
+@@ -578,6 +673,15 @@
+         justify-items: start;
+     }
+ 
++    .person-profile-asset {
++        align-items: stretch;
++        flex-direction: column;
++    }
++
++    .person-profile-asset__status {
++        justify-items: start;
++    }
++
+     .maintenance-item {
+         flex-direction: column;
+     }
+diff --git a/src/main/resources/templates/computers/index.html b/src/main/resources/templates/computers/index.html
+index 98aad74..17d876e 100644
+--- a/src/main/resources/templates/computers/index.html
++++ b/src/main/resources/templates/computers/index.html
+@@ -143,13 +143,17 @@
+ 
+         <div class="person-list" th:unless="${#lists.isEmpty(peopleWithAssets)}">
+             <article class="person-item" th:each="person : ${peopleWithAssets}">
+-                <div class="person-main-data">
++                <a
++                        class="person-main-data person-main-data--link"
++                        th:href="@{/people/{personId}(personId=${person.id})}"
++                >
+                     <strong th:text="${person.fullName}">Nombre completo</strong>
+                     <span th:text="${person.username + ' · ' + person.externalId}">usuario · ID</span>
+                     <small th:text="${person.email}">correo</small>
+                     <small th:if="${person.jobTitle != null}" th:text="${person.jobTitle}">Puesto</small>
+                     <small th:if="${person.department != null}" th:text="${person.department}">Área</small>
+-                </div>
++                    <small class="person-profile-link-label">Ver perfil completo</small>
++                </a>
+ 
+                 <div class="person-assets">
+                     <a
+diff --git a/src/main/resources/templates/people/detail.html b/src/main/resources/templates/people/detail.html
+new file mode 100644
+index 0000000..a779928
+--- /dev/null
++++ b/src/main/resources/templates/people/detail.html
+@@ -0,0 +1,233 @@
++<!DOCTYPE html>
++<html lang="es" xmlns:th="https://www.thymeleaf.org">
++<head th:replace="~{fragments/document-head :: head('Perfil de persona')}"></head>
++<body>
++<header th:replace="~{fragments/app-header :: header}"></header>
++
++<main class="page-content">
++    <section class="page-heading">
++        <div>
++            <p class="eyebrow">Perfil de persona</p>
++            <h1 th:text="${profile.person.fullName}">Nombre completo</h1>
++            <p th:text="${profile.person.username + ' · ID ' + profile.person.externalId}">usuario · ID</p>
++        </div>
++
++        <div class="page-actions">
++            <a class="secondary-button" th:href="@{/computers(view='PEOPLE')}">Ver equipos</a>
++            <a class="secondary-button" th:href="@{/phones(view='PEOPLE')}">Ver teléfonos</a>
++        </div>
++    </section>
++
++    <section class="detail-grid">
++        <article class="detail-card">
++            <span>Nombre de usuario</span>
++            <strong th:text="${profile.person.username}">usuario</strong>
++        </article>
++
++        <article class="detail-card">
++            <span>Número de empleado</span>
++            <strong th:text="${profile.person.externalId}">ID</strong>
++        </article>
++
++        <article class="detail-card">
++            <span>Correo</span>
++            <strong th:text="${profile.person.email}">correo@ejemplo.com</strong>
++        </article>
++
++        <article class="detail-card">
++            <span>Puesto</span>
++            <strong th:text="${profile.person.jobTitle ?: 'Sin registrar'}">Sin registrar</strong>
++        </article>
++
++        <article class="detail-card">
++            <span>Área</span>
++            <strong th:text="${profile.person.department ?: 'Sin registrar'}">Sin registrar</strong>
++        </article>
++
++        <article class="detail-card">
++            <span>Gerente</span>
++            <strong th:text="${profile.person.managerName ?: 'Sin registrar'}">Sin registrar</strong>
++        </article>
++    </section>
++
++    <section class="form-panel person-assets-section">
++        <div class="section-heading">
++            <div>
++                <h2>Activos asignados</h2>
++                <p>Equipos y teléfonos que actualmente están bajo su resguardo.</p>
++            </div>
++        </div>
++
++        <div class="person-profile-asset-grid">
++            <section class="person-profile-group">
++                <h3>Equipos de cómputo</h3>
++
++                <div class="empty-state person-empty-state" th:if="${#lists.isEmpty(profile.activeComputerAssignments)}">
++                    <p>No tiene equipos de cómputo activos.</p>
++                </div>
++
++                <div class="person-profile-asset-list" th:unless="${#lists.isEmpty(profile.activeComputerAssignments)}">
++                    <a
++                            class="person-profile-asset"
++                            th:each="assignment : ${profile.activeComputerAssignments}"
++                            th:href="@{/computers/{computerId}(computerId=${assignment.computer.id})}"
++                    >
++                        <div class="person-profile-asset__main">
++                            <strong th:text="${assignment.computer.host}">HOST-001</strong>
++                            <span th:text="${assignment.computer.brand + ' ' + assignment.computer.model}">Marca Modelo</span>
++                            <small th:text="${'Asset: ' + assignment.computer.asset + ' · ' + assignment.computer.site.name}">Asset · Ubicación</small>
++                        </div>
++
++                        <div class="person-profile-asset__status">
++                            <span
++                                    class="status-badge"
++                                    th:classappend="${assignment.assignmentType == T(com.assetcontrol.assignments.domain.AssignmentType).LOAN ? ' status-loaned' : ' status-assigned'}"
++                                    th:text="${assignment.assignmentType == T(com.assetcontrol.assignments.domain.AssignmentType).LOAN ? 'Préstamo' : 'Asignación'}"
++                            >Asignación</span>
++                            <small
++                                    class="assignment-expired"
++                                    th:if="${assignment.assignmentType == T(com.assetcontrol.assignments.domain.AssignmentType).LOAN and assignment.dueDate != null and assignment.dueDate.isBefore(T(java.time.LocalDate).now())}"
++                                    th:text="${'Venció: ' + #temporals.format(assignment.dueDate, 'dd/MM/yyyy')}"
++                            >Venció</small>
++                            <small
++                                    th:if="${assignment.assignmentType == T(com.assetcontrol.assignments.domain.AssignmentType).LOAN and assignment.dueDate != null and !assignment.dueDate.isBefore(T(java.time.LocalDate).now())}"
++                                    th:text="${'Vence: ' + #temporals.format(assignment.dueDate, 'dd/MM/yyyy')}"
++                            >Vence</small>
++                        </div>
++                    </a>
++                </div>
++            </section>
++
++            <section class="person-profile-group">
++                <h3>Teléfonos</h3>
++
++                <div class="empty-state person-empty-state" th:if="${#lists.isEmpty(profile.activePhoneAssignments)}">
++                    <p>No tiene teléfonos activos.</p>
++                </div>
++
++                <div class="person-profile-asset-list" th:unless="${#lists.isEmpty(profile.activePhoneAssignments)}">
++                    <a
++                            class="person-profile-asset"
++                            th:each="assignment : ${profile.activePhoneAssignments}"
++                            th:href="@{/phones/{phoneId}(phoneId=${assignment.phone.id})}"
++                    >
++                        <div class="person-profile-asset__main">
++                            <strong th:text="${assignment.phone.phoneLine != null ? assignment.phone.phoneLine.number : assignment.phone.imei}">Teléfono</strong>
++                            <span th:text="${assignment.phone.brand + ' ' + assignment.phone.model}">Marca Modelo</span>
++                            <small th:text="${'IMEI: ' + assignment.phone.imei + ' · ' + assignment.phone.site.name}">IMEI · Ubicación</small>
++                        </div>
++
++                        <div class="person-profile-asset__status">
++                            <span
++                                    class="status-badge"
++                                    th:classappend="${assignment.type == T(com.assetcontrol.phones.domain.PhoneAssignmentType).LOAN ? ' status-loaned' : ' status-assigned'}"
++                                    th:text="${assignment.type.label}"
++                            >Asignación</span>
++                            <small
++                                    class="assignment-expired"
++                                    th:if="${assignment.type == T(com.assetcontrol.phones.domain.PhoneAssignmentType).LOAN and assignment.dueAt != null and assignment.dueAt.isBefore(T(java.time.LocalDate).now())}"
++                                    th:text="${'Venció: ' + #temporals.format(assignment.dueAt, 'dd/MM/yyyy')}"
++                            >Venció</small>
++                            <small
++                                    th:if="${assignment.type == T(com.assetcontrol.phones.domain.PhoneAssignmentType).LOAN and assignment.dueAt != null and !assignment.dueAt.isBefore(T(java.time.LocalDate).now())}"
++                                    th:text="${'Vence: ' + #temporals.format(assignment.dueAt, 'dd/MM/yyyy')}"
++                            >Vence</small>
++                        </div>
++                    </a>
++                </div>
++            </section>
++        </div>
++    </section>
++
++    <section class="form-panel assignment-history">
++        <div class="section-heading">
++            <div>
++                <h2>Historial de equipos de cómputo</h2>
++                <p>Todos los movimientos de equipo registrados para esta persona.</p>
++            </div>
++        </div>
++
++        <div class="empty-state" th:if="${#lists.isEmpty(profile.computerAssignmentHistory)}">
++            <h3>Sin movimientos de equipo</h3>
++            <p>No hay asignaciones de equipo registradas para esta persona.</p>
++        </div>
++
++        <div class="assignment-list" th:unless="${#lists.isEmpty(profile.computerAssignmentHistory)}">
++            <a
++                    class="assignment-item person-history-item"
++                    th:each="assignment : ${profile.computerAssignmentHistory}"
++                    th:href="@{/computers/{computerId}(computerId=${assignment.computer.id})}"
++            >
++                <div class="assignment-person">
++                    <strong th:text="${assignment.computer.host}">HOST-001</strong>
++                    <span th:text="${assignment.computer.brand + ' ' + assignment.computer.model}">Marca Modelo</span>
++                    <small th:text="${'Asset: ' + assignment.computer.asset + ' · ' + assignment.computer.site.name}">Asset · Ubicación</small>
++                </div>
++
++                <div class="assignment-status">
++                    <span
++                            class="status-badge"
++                            th:classappend="${assignment.assignmentType == T(com.assetcontrol.assignments.domain.AssignmentType).LOAN ? ' status-loaned' : ' status-assigned'}"
++                            th:text="${assignment.assignmentType == T(com.assetcontrol.assignments.domain.AssignmentType).LOAN ? 'Préstamo' : 'Asignación'}"
++                    >Asignación</span>
++                    <small th:text="${'Desde: ' + #temporals.format(assignment.assignedAt, 'dd/MM/yyyy')}">Desde</small>
++                    <small
++                            th:if="${assignment.active}"
++                            th:text="${assignment.assignmentType == T(com.assetcontrol.assignments.domain.AssignmentType).LOAN and assignment.dueDate != null ? 'Vence: ' + #temporals.format(assignment.dueDate, 'dd/MM/yyyy') : 'Activo'}"
++                    >Activo</small>
++                    <small
++                            th:unless="${assignment.active}"
++                            th:text="${'Devuelto: ' + #temporals.format(assignment.returnedAt, 'dd/MM/yyyy')}"
++                    >Devuelto</small>
++                </div>
++            </a>
++        </div>
++    </section>
++
++    <section class="form-panel assignment-history">
++        <div class="section-heading">
++            <div>
++                <h2>Historial de teléfonos</h2>
++                <p>Todos los movimientos de teléfono registrados para esta persona.</p>
++            </div>
++        </div>
++
++        <div class="empty-state" th:if="${#lists.isEmpty(profile.phoneAssignmentHistory)}">
++            <h3>Sin movimientos de teléfono</h3>
++            <p>No hay asignaciones de teléfono registradas para esta persona.</p>
++        </div>
++
++        <div class="assignment-list" th:unless="${#lists.isEmpty(profile.phoneAssignmentHistory)}">
++            <a
++                    class="assignment-item person-history-item"
++                    th:each="assignment : ${profile.phoneAssignmentHistory}"
++                    th:href="@{/phones/{phoneId}(phoneId=${assignment.phone.id})}"
++            >
++                <div class="assignment-person">
++                    <strong th:text="${assignment.phone.phoneLine != null ? assignment.phone.phoneLine.number : assignment.phone.imei}">Teléfono</strong>
++                    <span th:text="${assignment.phone.brand + ' ' + assignment.phone.model}">Marca Modelo</span>
++                    <small th:text="${'IMEI: ' + assignment.phone.imei + ' · ' + assignment.phone.site.name}">IMEI · Ubicación</small>
++                </div>
++
++                <div class="assignment-status">
++                    <span
++                            class="status-badge"
++                            th:classappend="${assignment.type == T(com.assetcontrol.phones.domain.PhoneAssignmentType).LOAN ? ' status-loaned' : ' status-assigned'}"
++                            th:text="${assignment.type.label}"
++                    >Asignación</span>
++                    <small th:text="${'Desde: ' + #temporals.format(assignment.assignedAt, 'dd/MM/yyyy')}">Desde</small>
++                    <small
++                            th:if="${assignment.returnedAt == null}"
++                            th:text="${assignment.type == T(com.assetcontrol.phones.domain.PhoneAssignmentType).LOAN and assignment.dueAt != null ? 'Vence: ' + #temporals.format(assignment.dueAt, 'dd/MM/yyyy') : 'Activo'}"
++                    >Activo</small>
++                    <small
++                            th:if="${assignment.returnedAt != null}"
++                            th:text="${'Devuelto: ' + #temporals.format(assignment.returnedAt, 'dd/MM/yyyy')}"
++                    >Devuelto</small>
++                </div>
++            </a>
++        </div>
++    </section>
++</main>
++</body>
++</html>
+diff --git a/src/main/resources/templates/phones/index.html b/src/main/resources/templates/phones/index.html
+index 3897110..a9f27d9 100644
+--- a/src/main/resources/templates/phones/index.html
++++ b/src/main/resources/templates/phones/index.html
+@@ -130,13 +130,17 @@
+ 
+         <div class="person-list" th:unless="${#lists.isEmpty(peopleWithAssets)}">
+             <article class="person-item" th:each="person : ${peopleWithAssets}">
+-                <div class="person-main-data">
++                <a
++                        class="person-main-data person-main-data--link"
++                        th:href="@{/people/{personId}(personId=${person.id})}"
++                >
+                     <strong th:text="${person.fullName}">Nombre completo</strong>
+                     <span th:text="${person.username + ' · ' + person.externalId}">usuario · ID</span>
+                     <small th:text="${person.email}">correo</small>
+                     <small th:if="${person.jobTitle != null}" th:text="${person.jobTitle}">Puesto</small>
+                     <small th:if="${person.department != null}" th:text="${person.department}">Área</small>
+-                </div>
++                    <small class="person-profile-link-label">Ver perfil completo</small>
++                </a>
+ 
+                 <div class="person-assets">
+                     <a
+-- 
+2.51.1
+
