@@ -21,7 +21,7 @@ public interface PhoneRepository extends JpaRepository<Phone, Long> {
 
     Optional<Phone> findByImeiIgnoreCase(String imei);
 
-    @Query("""
+    @Query(value = """
             SELECT phone
             FROM Phone phone
             JOIN FETCH phone.site
@@ -30,7 +30,7 @@ public interface PhoneRepository extends JpaRepository<Phone, Long> {
             """)
     List<Phone> findAllWithDetails();
 
-    @Query("""
+    @Query(value = """
             SELECT phone
             FROM Phone phone
             JOIN FETCH phone.site
@@ -104,7 +104,7 @@ public interface PhoneRepository extends JpaRepository<Phone, Long> {
             Pageable pageable
     );
 
-    @Query("""
+    @Query(value = """
             SELECT phone
             FROM Phone phone
             JOIN FETCH phone.site

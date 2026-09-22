@@ -19,7 +19,7 @@ public interface PersonRepository extends JpaRepository<Person, Long> {
     Optional<Person> findByExternalIdIgnoreCase(String externalId);
     Optional<Person> findByUsernameIgnoreCase(String username);
 
-    @Query("""
+    @Query(value = """
             SELECT person
             FROM Person person
             WHERE :query = ''

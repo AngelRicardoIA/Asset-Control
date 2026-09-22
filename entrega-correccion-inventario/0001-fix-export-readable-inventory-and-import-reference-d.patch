@@ -1,0 +1,729 @@
+From 5e687a3edb089fbe4434b4bdbb31dc1df87d2548 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Tue, 15 Sep 2026 18:43:43 -0400
+Subject: [PATCH] fix: export readable inventory and import reference data
+
+---
+ docs/importacion-asignaciones.md              |  11 +-
+ .../computers/domain/ComputerRepository.java  |   1 +
+ .../ComputerInventoryCsvImportService.java    | 259 ++++++++++++++++++
+ .../ComputerInventoryImportPreview.java       |   9 +
+ .../ComputerInventoryImportRow.java           |  22 ++
+ .../web/AssignmentImportController.java       |  68 +++--
+ .../application/InventoryExportService.java   | 118 ++++++--
+ .../assetcontrol/people/domain/Person.java    |  14 +-
+ .../people/domain/PersonRepository.java       |   1 +
+ .../templates/assignment-imports/new.html     |  11 +-
+ 10 files changed, 462 insertions(+), 52 deletions(-)
+ create mode 100644 src/main/java/com/assetcontrol/imports/application/ComputerInventoryCsvImportService.java
+ create mode 100644 src/main/java/com/assetcontrol/imports/application/ComputerInventoryImportPreview.java
+ create mode 100644 src/main/java/com/assetcontrol/imports/application/ComputerInventoryImportRow.java
+
+diff --git a/docs/importacion-asignaciones.md b/docs/importacion-asignaciones.md
+index 8ce4e57..7c00a94 100644
+--- a/docs/importacion-asignaciones.md
++++ b/docs/importacion-asignaciones.md
+@@ -1,13 +1,12 @@
+-# Importación de asignaciones
++# Importación de inventario
+ 
+-La importación no crea equipos, teléfonos ni personas. Cada fila debe referenciar un registro existente y se valida completa antes de guardar.
++La importación de equipos crea o actualiza ubicación, persona, equipo y asignación. Cada fila se valida antes de guardar y no se crean duplicados por HOST, Asset, número de empleado o usuario.
+ 
+ ## Equipos de cómputo
+ 
+ ```csv
+-host,username,assignment_type,assigned_at,due_date,returned_at,notes
+-LAP-001,ana.lopez,ASSIGNMENT,2026-09-15,,,
+-LAP-002,luis.perez,LOAN,2026-09-15,2026-09-22,,Equipo temporal
++Localidad,No. Empleado,Nombre,User,Correo,Tipo,Host,Marca,Modelo,Asset,No. Serie,S.O.,Cargador,Fecha asignación
++Oficina norte,10001,Ana López,ana.lopez,ana.lopez@example.test,Laptop,LAP-001,Lenovo,ThinkPad L14,AC-001,PF001,Windows 11,CHR-001,15/09/2026
+ ```
+ 
+ ## Teléfonos
+@@ -17,4 +16,4 @@ imei,username,assignment_type,assigned_at,due_date,returned_at,notes
+ 351234567890123,ana.lopez,ASSIGNMENT,2026-09-15,,,
+ ```
+ 
+-Las columnas deben coincidir exactamente, aunque el orden puede cambiar. Las fechas usan `yyyy-MM-dd`; `due_date` es obligatorio únicamente para `LOAN`. Si una fila es inválida, no se importa ninguna.
++Las columnas deben coincidir exactamente, aunque el orden puede cambiar. La fecha de asignación usa `yyyy-MM-dd` o `d/M/yyyy`. Si una fila es inválida, no se importa ninguna.
+diff --git a/src/main/java/com/assetcontrol/computers/domain/ComputerRepository.java b/src/main/java/com/assetcontrol/computers/domain/ComputerRepository.java
+index 4d23afe..5d1ecca 100644
+--- a/src/main/java/com/assetcontrol/computers/domain/ComputerRepository.java
++++ b/src/main/java/com/assetcontrol/computers/domain/ComputerRepository.java
+@@ -18,6 +18,7 @@ public interface ComputerRepository extends JpaRepository<Computer, Long> {
+     boolean existsByHostIgnoreCaseAndIdNot(String host, Long id);
+ 
+     Optional<Computer> findByHostIgnoreCase(String host);
++    Optional<Computer> findByAssetIgnoreCase(String asset);
+ 
+     @Query(value = """
+         SELECT computer
+diff --git a/src/main/java/com/assetcontrol/imports/application/ComputerInventoryCsvImportService.java b/src/main/java/com/assetcontrol/imports/application/ComputerInventoryCsvImportService.java
+new file mode 100644
+index 0000000..9680d96
+--- /dev/null
++++ b/src/main/java/com/assetcontrol/imports/application/ComputerInventoryCsvImportService.java
+@@ -0,0 +1,259 @@
++package com.assetcontrol.imports.application;
++
++import com.assetcontrol.assignments.application.ComputerAssignmentService;
++import com.assetcontrol.assignments.domain.AssignmentType;
++import com.assetcontrol.assignments.domain.ComputerAssignment;
++import com.assetcontrol.assignments.domain.ComputerAssignmentRepository;
++import com.assetcontrol.computers.domain.Computer;
++import com.assetcontrol.computers.domain.ComputerRepository;
++import com.assetcontrol.computers.domain.ComputerStatus;
++import com.assetcontrol.computers.domain.ComputerType;
++import com.assetcontrol.people.domain.Person;
++import com.assetcontrol.people.domain.PersonRepository;
++import com.assetcontrol.sites.domain.Site;
++import com.assetcontrol.sites.domain.SiteRepository;
++import org.apache.commons.csv.CSVFormat;
++import org.apache.commons.csv.CSVParser;
++import org.apache.commons.csv.CSVRecord;
++import org.springframework.stereotype.Service;
++import org.springframework.transaction.annotation.Transactional;
++import org.springframework.web.multipart.MultipartFile;
++
++import java.io.IOException;
++import java.io.InputStreamReader;
++import java.io.PushbackReader;
++import java.nio.charset.StandardCharsets;
++import java.time.LocalDate;
++import java.time.format.DateTimeFormatter;
++import java.time.format.DateTimeParseException;
++import java.util.ArrayList;
++import java.util.Arrays;
++import java.util.LinkedHashSet;
++import java.util.List;
++import java.util.Locale;
++import java.util.Optional;
++import java.util.Set;
++
++@Service
++public class ComputerInventoryCsvImportService {
++
++    public static final List<String> HEADERS = List.of(
++            "Localidad", "No. Empleado", "Nombre", "User", "Correo", "Tipo",
++            "Host", "Marca", "Modelo", "Asset", "No. Serie", "S.O.",
++            "Cargador", "Fecha asignación"
++    );
++
++    private static final List<DateTimeFormatter> DATE_FORMATS = List.of(
++            DateTimeFormatter.ISO_LOCAL_DATE,
++            DateTimeFormatter.ofPattern("d/M/uuuu", Locale.ROOT),
++            DateTimeFormatter.ofPattern("d-M-uuuu", Locale.ROOT)
++    );
++
++    private final SiteRepository siteRepository;
++    private final PersonRepository personRepository;
++    private final ComputerRepository computerRepository;
++    private final ComputerAssignmentRepository assignmentRepository;
++    private final ComputerAssignmentService assignmentService;
++
++    public ComputerInventoryCsvImportService(
++            SiteRepository siteRepository,
++            PersonRepository personRepository,
++            ComputerRepository computerRepository,
++            ComputerAssignmentRepository assignmentRepository,
++            ComputerAssignmentService assignmentService
++    ) {
++        this.siteRepository = siteRepository;
++        this.personRepository = personRepository;
++        this.computerRepository = computerRepository;
++        this.assignmentRepository = assignmentRepository;
++        this.assignmentService = assignmentService;
++    }
++
++    public ComputerInventoryImportPreview preview(MultipartFile file) {
++        validateFile(file);
++        try (PushbackReader reader = utf8Reader(file);
++             CSVParser parser = CSVFormat.RFC4180.builder()
++                     .setHeader()
++                     .setSkipHeaderRecord(true)
++                     .build()
++                     .parse(reader)) {
++            validateHeaders(parser.getHeaderNames());
++            List<ComputerInventoryImportRow> rows = new ArrayList<>();
++            Set<String> assignmentKeys = new LinkedHashSet<>();
++            for (CSVRecord record : parser) {
++                if (!record.isConsistent()) {
++                    throw new IllegalArgumentException("La fila " + record.getRecordNumber() + " no tiene todas las columnas requeridas.");
++                }
++                if (Arrays.stream(record.values()).allMatch(String::isBlank)) {
++                    continue;
++                }
++                ComputerInventoryImportRow row = toRow(record);
++                validateRow(row, record.getRecordNumber());
++                String assignmentKey = row.host().toLowerCase(Locale.ROOT) + "|" + row.username().toLowerCase(Locale.ROOT);
++                if (!assignmentKeys.add(assignmentKey)) {
++                    throw new IllegalArgumentException("La fila " + record.getRecordNumber() + " duplica la asignación de " + row.host() + " a " + row.username() + ".");
++                }
++                rows.add(row);
++            }
++            if (rows.isEmpty()) {
++                throw new IllegalArgumentException("El CSV no contiene equipos para importar.");
++            }
++            return new ComputerInventoryImportPreview(List.copyOf(rows));
++        } catch (IOException exception) {
++            throw new IllegalArgumentException("No fue posible leer el CSV.", exception);
++        }
++    }
++
++    @Transactional
++    public void importPreview(ComputerInventoryImportPreview preview) {
++        Set<Computer> affectedComputers = new LinkedHashSet<>();
++        for (ComputerInventoryImportRow row : preview.rows()) {
++            Site site = resolveSite(row.siteName());
++            Person person = resolvePerson(row);
++            Computer computer = resolveComputer(row, site);
++            if (computer.getStatus() == ComputerStatus.RETIRED) {
++                throw new IllegalArgumentException("No se puede importar una asignación para el equipo dado de baja " + computer.getHost() + ".");
++            }
++            if (!assignmentRepository.existsByComputer_IdAndPerson_IdAndReturnedAtIsNull(computer.getId(), person.getId())) {
++                assignmentRepository.save(new ComputerAssignment(
++                        computer,
++                        person,
++                        AssignmentType.ASSIGNMENT,
++                        row.assignedAt(),
++                        null,
++                        null
++                ));
++            }
++            affectedComputers.add(computer);
++        }
++        assignmentService.refreshStatuses(affectedComputers);
++    }
++
++    private void validateFile(MultipartFile file) {
++        if (file == null || file.isEmpty()) {
++            throw new IllegalArgumentException("Selecciona un archivo CSV.");
++        }
++        String fileName = file.getOriginalFilename();
++        if (fileName == null || !fileName.toLowerCase(Locale.ROOT).endsWith(".csv")) {
++            throw new IllegalArgumentException("El archivo debe tener extensión .csv.");
++        }
++    }
++
++    private PushbackReader utf8Reader(MultipartFile file) throws IOException {
++        PushbackReader reader = new PushbackReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8), 1);
++        int first = reader.read();
++        if (first != 0xFEFF && first != -1) {
++            reader.unread(first);
++        }
++        return reader;
++    }
++
++    private void validateHeaders(List<String> headers) {
++        Set<String> actual = new LinkedHashSet<>(headers);
++        if (headers.size() != actual.size() || !actual.equals(new LinkedHashSet<>(HEADERS))) {
++            throw new IllegalArgumentException("Las columnas deben ser exactamente: " + String.join(", ", HEADERS) + ".");
++        }
++    }
++
++    private ComputerInventoryImportRow toRow(CSVRecord record) {
++        return new ComputerInventoryImportRow(
++                required(record, "Localidad"),
++                required(record, "No. Empleado"),
++                required(record, "Nombre"),
++                required(record, "User"),
++                required(record, "Correo"),
++                required(record, "Tipo"),
++                required(record, "Host"),
++                required(record, "Marca"),
++                required(record, "Modelo"),
++                required(record, "Asset"),
++                required(record, "No. Serie"),
++                optional(record, "S.O."),
++                optional(record, "Cargador"),
++                parseDate(required(record, "Fecha asignación"))
++        );
++    }
++
++    private String required(CSVRecord record, String header) {
++        String value = optional(record, header);
++        if (value == null) {
++            throw new IllegalArgumentException("La fila " + record.getRecordNumber() + " no tiene " + header + ".");
++        }
++        return value;
++    }
++
++    private String optional(CSVRecord record, String header) {
++        String value = record.get(header).strip().replaceAll("\\s+", " ");
++        return value.isBlank() ? null : value;
++    }
++
++    private LocalDate parseDate(String value) {
++        for (DateTimeFormatter format : DATE_FORMATS) {
++            try {
++                return LocalDate.parse(value, format);
++            } catch (DateTimeParseException ignored) {
++            }
++        }
++        throw new IllegalArgumentException("Fecha asignación debe usar yyyy-MM-dd o d/M/yyyy.");
++    }
++
++    private void validateRow(ComputerInventoryImportRow row, long number) {
++        try {
++            computerType(row.computerType());
++            Optional<Computer> byHost = computerRepository.findByHostIgnoreCase(row.host());
++            Optional<Computer> byAsset = computerRepository.findByAssetIgnoreCase(row.asset());
++            if (byHost.isPresent() && byAsset.isPresent() && !byHost.get().getId().equals(byAsset.get().getId())) {
++                throw new IllegalArgumentException("HOST y Asset pertenecen a equipos distintos.");
++            }
++            Optional<Person> byEmployee = personRepository.findByExternalIdIgnoreCase(row.employeeNumber());
++            Optional<Person> byUsername = personRepository.findByUsernameIgnoreCase(row.username());
++            if (byEmployee.isPresent() && byUsername.isPresent() && !byEmployee.get().getId().equals(byUsername.get().getId())) {
++                throw new IllegalArgumentException("No. Empleado y User pertenecen a personas distintas.");
++            }
++        } catch (IllegalArgumentException exception) {
++            throw new IllegalArgumentException("La fila " + number + ": " + exception.getMessage());
++        }
++    }
++
++    private Site resolveSite(String name) {
++        Site site = siteRepository.findByNameIgnoreCase(name).orElseGet(() -> siteRepository.save(new Site(name)));
++        if (!site.isActive()) {
++            site.activate();
++        }
++        return site;
++    }
++
++    private Person resolvePerson(ComputerInventoryImportRow row) {
++        Person person = personRepository.findByExternalIdIgnoreCase(row.employeeNumber())
++                .or(() -> personRepository.findByUsernameIgnoreCase(row.username()))
++                .orElseGet(() -> personRepository.save(new Person(
++                        row.employeeNumber(), row.username(), row.fullName(), row.email()
++                )));
++        person.updateDetails(row.employeeNumber(), row.username(), row.fullName(), row.email());
++        return person;
++    }
++
++    private Computer resolveComputer(ComputerInventoryImportRow row, Site site) {
++        Computer computer = computerRepository.findByHostIgnoreCase(row.host())
++                .or(() -> computerRepository.findByAssetIgnoreCase(row.asset()))
++                .orElseGet(() -> computerRepository.save(new Computer(
++                        row.asset(), row.host(), computerType(row.computerType()), row.brand(), row.model(),
++                        row.serialNumber(), row.chargerSerialNumber(), row.operatingSystem(),
++                        ComputerStatus.AVAILABLE, site, null
++                )));
++        computer.updateDetails(
++                row.asset(), row.host(), computerType(row.computerType()), row.brand(), row.model(),
++                row.serialNumber(), row.chargerSerialNumber(), row.operatingSystem(), site, computer.getObservations()
++        );
++        return computer;
++    }
++
++    private ComputerType computerType(String value) {
++        String normalized = value.strip().toUpperCase(Locale.ROOT);
++        return switch (normalized) {
++            case "LAPTOP" -> ComputerType.LAPTOP;
++            case "PC", "DESKTOP", "EQUIPO DE ESCRITORIO" -> ComputerType.DESKTOP;
++            default -> throw new IllegalArgumentException("Tipo debe ser Laptop, PC o Equipo de escritorio.");
++        };
++    }
++}
+diff --git a/src/main/java/com/assetcontrol/imports/application/ComputerInventoryImportPreview.java b/src/main/java/com/assetcontrol/imports/application/ComputerInventoryImportPreview.java
+new file mode 100644
+index 0000000..281e265
+--- /dev/null
++++ b/src/main/java/com/assetcontrol/imports/application/ComputerInventoryImportPreview.java
+@@ -0,0 +1,9 @@
++package com.assetcontrol.imports.application;
++
++import java.io.Serializable;
++import java.util.List;
++
++public record ComputerInventoryImportPreview(
++        List<ComputerInventoryImportRow> rows
++) implements Serializable {
++}
+diff --git a/src/main/java/com/assetcontrol/imports/application/ComputerInventoryImportRow.java b/src/main/java/com/assetcontrol/imports/application/ComputerInventoryImportRow.java
+new file mode 100644
+index 0000000..b0dcd43
+--- /dev/null
++++ b/src/main/java/com/assetcontrol/imports/application/ComputerInventoryImportRow.java
+@@ -0,0 +1,22 @@
++package com.assetcontrol.imports.application;
++
++import java.io.Serializable;
++import java.time.LocalDate;
++
++public record ComputerInventoryImportRow(
++        String siteName,
++        String employeeNumber,
++        String fullName,
++        String username,
++        String email,
++        String computerType,
++        String host,
++        String brand,
++        String model,
++        String asset,
++        String serialNumber,
++        String operatingSystem,
++        String chargerSerialNumber,
++        LocalDate assignedAt
++) implements Serializable {
++}
+diff --git a/src/main/java/com/assetcontrol/imports/web/AssignmentImportController.java b/src/main/java/com/assetcontrol/imports/web/AssignmentImportController.java
+index 4b06771..b9405ce 100644
+--- a/src/main/java/com/assetcontrol/imports/web/AssignmentImportController.java
++++ b/src/main/java/com/assetcontrol/imports/web/AssignmentImportController.java
+@@ -2,6 +2,8 @@ package com.assetcontrol.imports.web;
+ 
+ import com.assetcontrol.imports.application.AssignmentCsvImportService;
+ import com.assetcontrol.imports.application.AssignmentImportPreview;
++import com.assetcontrol.imports.application.ComputerInventoryCsvImportService;
++import com.assetcontrol.imports.application.ComputerInventoryImportPreview;
+ import jakarta.servlet.http.HttpSession;
+ import org.springframework.stereotype.Controller;
+ import org.springframework.ui.Model;
+@@ -16,16 +18,22 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+ @RequestMapping("/assignment-imports")
+ public class AssignmentImportController {
+ 
+-    private static final String PREVIEW_KEY = "assignmentImportPreview";
+-    private final AssignmentCsvImportService importService;
++    private static final String COMPUTER_PREVIEW_KEY = "computerInventoryImportPreview";
++    private static final String PHONE_PREVIEW_KEY = "phoneAssignmentImportPreview";
++    private final ComputerInventoryCsvImportService computerImportService;
++    private final AssignmentCsvImportService phoneImportService;
+ 
+-    public AssignmentImportController(AssignmentCsvImportService importService) {
+-        this.importService = importService;
++    public AssignmentImportController(
++            ComputerInventoryCsvImportService computerImportService,
++            AssignmentCsvImportService phoneImportService
++    ) {
++        this.computerImportService = computerImportService;
++        this.phoneImportService = phoneImportService;
+     }
+ 
+     @GetMapping("/computers")
+     public String showComputerForm(Model model) {
+-        return showForm(model, AssignmentImportPreview.Kind.COMPUTER);
++        return showComputerImportForm(model);
+     }
+ 
+     @GetMapping("/phones")
+@@ -35,36 +43,62 @@ public class AssignmentImportController {
+ 
+     @PostMapping("/computers/preview")
+     public String previewComputers(@RequestParam("file") MultipartFile file, HttpSession session, Model model) {
+-        return preview(file, session, model, AssignmentImportPreview.Kind.COMPUTER);
++        try {
++            ComputerInventoryImportPreview preview = computerImportService.preview(file);
++            session.setAttribute(COMPUTER_PREVIEW_KEY, preview);
++            model.addAttribute("preview", preview);
++        } catch (IllegalArgumentException exception) {
++            model.addAttribute("errorMessage", exception.getMessage());
++        }
++        return showComputerImportForm(model);
+     }
+ 
+     @PostMapping("/phones/preview")
+     public String previewPhones(@RequestParam("file") MultipartFile file, HttpSession session, Model model) {
+-        return preview(file, session, model, AssignmentImportPreview.Kind.PHONE);
++        return previewPhones(file, session, model);
+     }
+ 
+-    @PostMapping("/confirm")
+-    public String confirm(HttpSession session, RedirectAttributes attributes) {
+-        AssignmentImportPreview preview = (AssignmentImportPreview) session.getAttribute(PREVIEW_KEY);
++    @PostMapping("/computers/confirm")
++    public String confirmComputers(HttpSession session, RedirectAttributes attributes) {
++        ComputerInventoryImportPreview preview = (ComputerInventoryImportPreview) session.getAttribute(COMPUTER_PREVIEW_KEY);
+         if (preview == null) {
+             attributes.addFlashAttribute("errorMessage", "Primero selecciona y valida un CSV.");
+             return "redirect:/computers";
+         }
+-        importService.importPreview(preview);
+-        session.removeAttribute(PREVIEW_KEY);
++        computerImportService.importPreview(preview);
++        session.removeAttribute(COMPUTER_PREVIEW_KEY);
++        attributes.addFlashAttribute("successMessage", preview.rows().size() + " equipos y asignaciones importados correctamente.");
++        return "redirect:/computers";
++    }
++
++    @PostMapping("/phones/confirm")
++    public String confirmPhones(HttpSession session, RedirectAttributes attributes) {
++        AssignmentImportPreview preview = (AssignmentImportPreview) session.getAttribute(PHONE_PREVIEW_KEY);
++        if (preview == null) {
++            attributes.addFlashAttribute("errorMessage", "Primero selecciona y valida un CSV.");
++            return "redirect:/phones";
++        }
++        phoneImportService.importPreview(preview);
++        session.removeAttribute(PHONE_PREVIEW_KEY);
+         attributes.addFlashAttribute("successMessage", preview.rows().size() + " asignaciones importadas correctamente.");
+-        return "redirect:" + (preview.kind() == AssignmentImportPreview.Kind.COMPUTER ? "/computers" : "/phones");
++        return "redirect:/phones";
+     }
+ 
+-    private String preview(MultipartFile file, HttpSession session, Model model, AssignmentImportPreview.Kind kind) {
++    private String previewPhones(MultipartFile file, HttpSession session, Model model) {
+         try {
+-            AssignmentImportPreview preview = kind == AssignmentImportPreview.Kind.COMPUTER ? importService.previewComputers(file) : importService.previewPhones(file);
+-            session.setAttribute(PREVIEW_KEY, preview);
++            AssignmentImportPreview preview = phoneImportService.previewPhones(file);
++            session.setAttribute(PHONE_PREVIEW_KEY, preview);
+             model.addAttribute("preview", preview);
+         } catch (IllegalArgumentException exception) {
+             model.addAttribute("errorMessage", exception.getMessage());
+         }
+-        return showForm(model, kind);
++        return showForm(model, AssignmentImportPreview.Kind.PHONE);
++    }
++
++    private String showComputerImportForm(Model model) {
++        model.addAttribute("kind", AssignmentImportPreview.Kind.COMPUTER);
++        model.addAttribute("headers", String.join(", ", ComputerInventoryCsvImportService.HEADERS));
++        return "assignment-imports/new";
+     }
+ 
+     private String showForm(Model model, AssignmentImportPreview.Kind kind) {
+diff --git a/src/main/java/com/assetcontrol/inventory/application/InventoryExportService.java b/src/main/java/com/assetcontrol/inventory/application/InventoryExportService.java
+index c4b5143..55dc0bb 100644
+--- a/src/main/java/com/assetcontrol/inventory/application/InventoryExportService.java
++++ b/src/main/java/com/assetcontrol/inventory/application/InventoryExportService.java
+@@ -6,6 +6,7 @@ import org.apache.poi.ss.usermodel.FillPatternType;
+ import org.apache.poi.ss.usermodel.Font;
+ import org.apache.poi.ss.usermodel.IndexedColors;
+ import org.apache.poi.ss.usermodel.Row;
++import org.apache.poi.ss.usermodel.Sheet;
+ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+ import org.springframework.jdbc.core.JdbcTemplate;
+ import org.springframework.stereotype.Service;
+@@ -13,12 +14,18 @@ import org.springframework.transaction.annotation.Transactional;
+ 
+ import java.io.ByteArrayOutputStream;
+ import java.io.IOException;
+-import java.sql.ResultSetMetaData;
++import java.time.Instant;
++import java.time.LocalDate;
++import java.time.ZoneOffset;
++import java.time.format.DateTimeFormatter;
+ import java.util.List;
++import java.util.Map;
+ 
+ @Service
+ public class InventoryExportService {
+ 
++    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
++
+     private final JdbcTemplate jdbcTemplate;
+ 
+     public InventoryExportService(JdbcTemplate jdbcTemplate) {
+@@ -29,13 +36,7 @@ public class InventoryExportService {
+     public byte[] export() {
+         try (XSSFWorkbook workbook = new XSSFWorkbook(); ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+             CellStyle headerStyle = headerStyle(workbook);
+-            List<String> tables = jdbcTemplate.queryForList("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name <> 'flyway_schema_history' ORDER BY name", String.class);
+-            for (String table : tables) {
+-                jdbcTemplate.query("SELECT * FROM \"" + table.replace("\"", "\"\"") + "\"", resultSet -> {
+-                    writeSheet(workbook, table, resultSet, headerStyle);
+-                    return null;
+-                });
+-            }
++            sheets().forEach(definition -> writeSheet(workbook, definition, jdbcTemplate.queryForList(definition.query()), headerStyle));
+             workbook.write(output);
+             return output.toByteArray();
+         } catch (IOException exception) {
+@@ -43,6 +44,42 @@ public class InventoryExportService {
+         }
+     }
+ 
++    private List<SheetDefinition> sheets() {
++        return List.of(
++                new SheetDefinition("Equipos de cómputo", """
++                        SELECT s.name AS 'Ubicación', c.host AS 'HOST', c.asset AS 'Asset', c.computer_type AS 'Tipo', c.brand AS 'Marca', c.model AS 'Modelo', c.serial_number AS 'No. serie', c.operating_system AS 'S.O.', c.charger_serial_number AS 'Cargador', c.status AS 'Estado', c.observations AS 'Observaciones', p.external_id AS 'No. empleado', p.full_name AS 'Nombre completo', p.username AS 'Usuario', p.email AS 'Correo', ca.assignment_type AS 'Tipo asignación', ca.assigned_at AS 'Fecha asignación', ca.due_date AS 'Vencimiento', ca.notes AS 'Observaciones asignación'
++                        FROM computers c JOIN sites s ON s.id = c.site_id
++                        LEFT JOIN computer_assignments ca ON ca.computer_id = c.id AND ca.returned_at IS NULL
++                        LEFT JOIN people p ON p.id = ca.person_id
++                        ORDER BY c.host, p.username
++                        """, List.of("Fecha asignación", "Vencimiento")),
++                new SheetDefinition("Historial equipos", """
++                        SELECT s.name AS 'Ubicación', c.host AS 'HOST', c.asset AS 'Asset', c.brand AS 'Marca', c.model AS 'Modelo', c.serial_number AS 'No. serie', p.external_id AS 'No. empleado', p.full_name AS 'Nombre completo', p.username AS 'Usuario', p.email AS 'Correo', ca.assignment_type AS 'Tipo asignación', ca.assigned_at AS 'Fecha asignación', ca.due_date AS 'Vencimiento', ca.returned_at AS 'Fecha devolución', ca.notes AS 'Observaciones'
++                        FROM computer_assignments ca JOIN computers c ON c.id = ca.computer_id JOIN sites s ON s.id = c.site_id JOIN people p ON p.id = ca.person_id
++                        ORDER BY c.host, ca.assigned_at DESC
++                        """, List.of("Fecha asignación", "Vencimiento", "Fecha devolución")),
++                new SheetDefinition("Teléfonos", """
++                        SELECT s.name AS 'Ubicación', ph.imei AS 'IMEI', ph.brand AS 'Marca', ph.model AS 'Modelo', pl.number AS 'Línea', pl.carrier AS 'Operador', ph.status AS 'Estado', ph.observations AS 'Observaciones', p.external_id AS 'No. empleado', p.full_name AS 'Nombre completo', p.username AS 'Usuario', p.email AS 'Correo', pa.assignment_type AS 'Tipo asignación', pa.assigned_at AS 'Fecha asignación', pa.due_at AS 'Vencimiento', pa.observations AS 'Observaciones asignación'
++                        FROM phones ph JOIN sites s ON s.id = ph.site_id LEFT JOIN phone_lines pl ON pl.id = ph.phone_line_id
++                        LEFT JOIN phone_assignments pa ON pa.phone_id = ph.id AND pa.returned_at IS NULL LEFT JOIN people p ON p.id = pa.person_id
++                        ORDER BY ph.imei, p.username
++                        """, List.of("Fecha asignación", "Vencimiento")),
++                new SheetDefinition("Historial teléfonos", """
++                        SELECT ph.imei AS 'IMEI', ph.brand AS 'Marca', ph.model AS 'Modelo', pl.number AS 'Línea', p.external_id AS 'No. empleado', p.full_name AS 'Nombre completo', p.username AS 'Usuario', p.email AS 'Correo', pa.assignment_type AS 'Tipo asignación', pa.assigned_at AS 'Fecha asignación', pa.due_at AS 'Vencimiento', pa.returned_at AS 'Fecha devolución', pa.observations AS 'Observaciones'
++                        FROM phone_assignments pa JOIN phones ph ON ph.id = pa.phone_id LEFT JOIN phone_lines pl ON pl.id = ph.phone_line_id JOIN people p ON p.id = pa.person_id
++                        ORDER BY ph.imei, pa.assigned_at DESC
++                        """, List.of("Fecha asignación", "Vencimiento", "Fecha devolución")),
++                new SheetDefinition("Mantenimientos", """
++                        SELECT c.host AS 'HOST', c.asset AS 'Asset', c.brand AS 'Marca', c.model AS 'Modelo', mr.record_type AS 'Tipo', mr.performed_at AS 'Fecha', mr.description AS 'Descripción', mr.performed_by AS 'Realizado por'
++                        FROM computer_maintenance_records mr JOIN computers c ON c.id = mr.computer_id
++                        ORDER BY mr.performed_at DESC, c.host
++                        """, List.of("Fecha")),
++                new SheetDefinition("Personas", "SELECT external_id AS 'No. empleado', full_name AS 'Nombre completo', username AS 'Usuario', email AS 'Correo' FROM people ORDER BY full_name", List.of()),
++                new SheetDefinition("Ubicaciones", "SELECT name AS 'Ubicación', CASE WHEN is_active THEN 'Activa' ELSE 'Inactiva' END AS 'Estado' FROM sites ORDER BY name", List.of()),
++                new SheetDefinition("Líneas telefónicas", "SELECT number AS 'Línea', carrier AS 'Operador' FROM phone_lines ORDER BY number", List.of())
++        );
++    }
++
+     private CellStyle headerStyle(XSSFWorkbook workbook) {
+         CellStyle style = workbook.createCellStyle();
+         style.setFillForegroundColor(IndexedColors.DARK_BLUE.getIndex());
+@@ -54,26 +91,61 @@ public class InventoryExportService {
+         return style;
+     }
+ 
+-    private void writeSheet(XSSFWorkbook workbook, String table, java.sql.ResultSet resultSet, CellStyle headerStyle) throws java.sql.SQLException {
+-        var sheet = workbook.createSheet(table);
+-        ResultSetMetaData metadata = resultSet.getMetaData();
+-        int columns = metadata.getColumnCount();
++    private void writeSheet(XSSFWorkbook workbook, SheetDefinition definition, List<Map<String, Object>> rows, CellStyle headerStyle) {
++        Sheet sheet = workbook.createSheet(definition.name());
++        List<String> headers = definition.headers();
+         Row header = sheet.createRow(0);
+-        for (int column = 1; column <= columns; column++) {
+-            Cell cell = header.createCell(column - 1);
+-            cell.setCellValue(metadata.getColumnLabel(column));
++        for (int column = 0; column < headers.size(); column++) {
++            Cell cell = header.createCell(column);
++            cell.setCellValue(headers.get(column));
+             cell.setCellStyle(headerStyle);
+         }
+-        int rowIndex = 1;
+-        while (resultSet.next()) {
+-            Row row = sheet.createRow(rowIndex++);
+-            for (int column = 1; column <= columns; column++) {
+-                Object value = resultSet.getObject(column);
+-                row.createCell(column - 1).setCellValue(value == null ? "" : String.valueOf(value));
++        for (int index = 0; index < rows.size(); index++) {
++            Row row = sheet.createRow(index + 1);
++            Map<String, Object> values = rows.get(index);
++            for (int column = 0; column < headers.size(); column++) {
++                String headerName = headers.get(column);
++                row.createCell(column).setCellValue(format(values.get(headerName), definition.dateHeaders().contains(headerName)));
+             }
+         }
+         sheet.createFreezePane(0, 1);
+-        sheet.setAutoFilter(new org.apache.poi.ss.util.CellRangeAddress(0, Math.max(0, rowIndex - 1), 0, columns - 1));
+-        for (int column = 0; column < columns; column++) sheet.autoSizeColumn(column);
++        sheet.setAutoFilter(new org.apache.poi.ss.util.CellRangeAddress(0, Math.max(0, rows.size()), 0, Math.max(0, headers.size() - 1)));
++        for (int column = 0; column < headers.size(); column++) {
++            sheet.autoSizeColumn(column);
++            sheet.setColumnWidth(column, Math.min(sheet.getColumnWidth(column) + 512, 18000));
++        }
++    }
++
++    private String format(Object value, boolean date) {
++        if (value == null) return "";
++        String formatted = date ? formatDate(value) : String.valueOf(value);
++        return formatted.startsWith("=") || formatted.startsWith("+") || formatted.startsWith("-") || formatted.startsWith("@") ? "'" + formatted : formatted;
++    }
++
++    private String formatDate(Object value) {
++        if (value instanceof Number number) {
++            return Instant.ofEpochMilli(number.longValue()).atZone(ZoneOffset.UTC).toLocalDate().format(DATE_FORMAT);
++        }
++        String text = String.valueOf(value);
++        try {
++            return LocalDate.parse(text).format(DATE_FORMAT);
++        } catch (RuntimeException ignored) {
++            return text;
++        }
++    }
++
++    private record SheetDefinition(String name, String query, List<String> dateHeaders) {
++        private List<String> headers() {
++            return switch (name) {
++                case "Equipos de cómputo" -> List.of("Ubicación", "HOST", "Asset", "Tipo", "Marca", "Modelo", "No. serie", "S.O.", "Cargador", "Estado", "Observaciones", "No. empleado", "Nombre completo", "Usuario", "Correo", "Tipo asignación", "Fecha asignación", "Vencimiento", "Observaciones asignación");
++                case "Historial equipos" -> List.of("Ubicación", "HOST", "Asset", "Marca", "Modelo", "No. serie", "No. empleado", "Nombre completo", "Usuario", "Correo", "Tipo asignación", "Fecha asignación", "Vencimiento", "Fecha devolución", "Observaciones");
++                case "Teléfonos" -> List.of("Ubicación", "IMEI", "Marca", "Modelo", "Línea", "Operador", "Estado", "Observaciones", "No. empleado", "Nombre completo", "Usuario", "Correo", "Tipo asignación", "Fecha asignación", "Vencimiento", "Observaciones asignación");
++                case "Historial teléfonos" -> List.of("IMEI", "Marca", "Modelo", "Línea", "No. empleado", "Nombre completo", "Usuario", "Correo", "Tipo asignación", "Fecha asignación", "Vencimiento", "Fecha devolución", "Observaciones");
++                case "Mantenimientos" -> List.of("HOST", "Asset", "Marca", "Modelo", "Tipo", "Fecha", "Descripción", "Realizado por");
++                case "Personas" -> List.of("No. empleado", "Nombre completo", "Usuario", "Correo");
++                case "Ubicaciones" -> List.of("Ubicación", "Estado");
++                default -> List.of("Línea", "Operador");
++            };
++        }
+     }
+ }
+diff --git a/src/main/java/com/assetcontrol/people/domain/Person.java b/src/main/java/com/assetcontrol/people/domain/Person.java
+index bdba26d..cba0894 100644
+--- a/src/main/java/com/assetcontrol/people/domain/Person.java
++++ b/src/main/java/com/assetcontrol/people/domain/Person.java
+@@ -52,6 +52,18 @@ public class Person {
+         this.email = email;
+     }
+ 
++    public void updateDetails(
++            String externalId,
++            String username,
++            String fullName,
++            String email
++    ) {
++        this.externalId = externalId;
++        this.username = username;
++        this.fullName = fullName;
++        this.email = email;
++    }
++
+     @PrePersist
+     void onCreate() {
+         LocalDateTime now = LocalDateTime.now();
+@@ -83,4 +95,4 @@ public class Person {
+     public String getUsername() {
+         return username;
+     }
+-}
+\ No newline at end of file
++}
+diff --git a/src/main/java/com/assetcontrol/people/domain/PersonRepository.java b/src/main/java/com/assetcontrol/people/domain/PersonRepository.java
+index 8ef4e7a..eeff54a 100644
+--- a/src/main/java/com/assetcontrol/people/domain/PersonRepository.java
++++ b/src/main/java/com/assetcontrol/people/domain/PersonRepository.java
+@@ -11,4 +11,5 @@ public interface PersonRepository extends JpaRepository<Person, Long> {
+     boolean existsByUsernameIgnoreCase(String username);
+     List<Person> findAllByOrderByFullNameAsc();
+     Optional<Person> findByUsernameIgnoreCase(String username);
++    Optional<Person> findByExternalIdIgnoreCase(String externalId);
+ }
+diff --git a/src/main/resources/templates/assignment-imports/new.html b/src/main/resources/templates/assignment-imports/new.html
+index 89fe03a..8af7d53 100644
+--- a/src/main/resources/templates/assignment-imports/new.html
++++ b/src/main/resources/templates/assignment-imports/new.html
+@@ -7,23 +7,24 @@
+     <section class="page-heading">
+         <div>
+             <p class="eyebrow">Importación</p>
+-            <h1 th:text="${kind.name() == 'COMPUTER' ? 'Importar asignaciones de equipos' : 'Importar asignaciones de teléfonos'}"></h1>
++            <h1 th:text="${kind.name() == 'COMPUTER' ? 'Importar inventario de equipos' : 'Importar asignaciones de teléfonos'}"></h1>
+             <p>El archivo se valida completo antes de modificar el inventario.</p>
+         </div>
+     </section>
+     <section class="form-panel">
+         <p class="alert alert--error" th:if="${errorMessage}" th:text="${errorMessage}"></p>
+         <p>Columnas obligatorias: <code th:text="${headers}"></code></p>
+-        <p>Fechas: <code>yyyy-MM-dd</code>. Tipos: <code>ASSIGNMENT</code> o <code>LOAN</code>.</p>
++        <p th:if="${kind.name() == 'COMPUTER'}">Fecha asignación: <code>yyyy-MM-dd</code> o <code>d/M/yyyy</code>.</p>
++        <p th:unless="${kind.name() == 'COMPUTER'}">Fechas: <code>yyyy-MM-dd</code>. Tipos: <code>ASSIGNMENT</code> o <code>LOAN</code>.</p>
+         <form th:action="${kind.name() == 'COMPUTER' ? '/assignment-imports/computers/preview' : '/assignment-imports/phones/preview'}" method="post" enctype="multipart/form-data">
+             <label for="file">Archivo CSV</label>
+             <input id="file" name="file" type="file" accept=".csv,text/csv" required>
+             <div class="form-actions"><button class="primary-button" type="submit">Validar archivo</button></div>
+         </form>
+         <div class="alert alert--success" th:if="${preview}">
+-            <p th:text="${'Se validaron ' + preview.rows().size() + ' asignaciones.'}"></p>
+-            <form th:action="@{/assignment-imports/confirm}" method="post">
+-                <button class="primary-button" type="submit" th:text="${'¿Seguro que quieres importar ' + preview.rows().size() + ' asignaciones?'}"></button>
++            <p th:text="${kind.name() == 'COMPUTER' ? 'Se validaron ' + preview.rows().size() + ' equipos y asignaciones.' : 'Se validaron ' + preview.rows().size() + ' asignaciones.'}"></p>
++            <form th:action="${kind.name() == 'COMPUTER' ? '/assignment-imports/computers/confirm' : '/assignment-imports/phones/confirm'}" method="post">
++                <button class="primary-button" type="submit" th:text="${kind.name() == 'COMPUTER' ? '¿Seguro que quieres importar ' + preview.rows().size() + ' equipos y asignaciones?' : '¿Seguro que quieres importar ' + preview.rows().size() + ' asignaciones?'}"></button>
+             </form>
+         </div>
+     </section>
+-- 
+2.51.1
+

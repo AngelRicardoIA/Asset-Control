@@ -17,7 +17,7 @@ public interface PhoneAssignmentRepository extends JpaRepository<PhoneAssignment
 
     boolean existsByPhoneIdAndReturnedAtIsNull(Long phoneId);
 
-    @Query("""
+    @Query(value = """
             SELECT assignment
             FROM PhoneAssignment assignment
             JOIN FETCH assignment.person
@@ -27,7 +27,7 @@ public interface PhoneAssignmentRepository extends JpaRepository<PhoneAssignment
             """)
     List<PhoneAssignment> findActiveByPhoneIdWithPerson(@Param("phoneId") Long phoneId);
 
-    @Query("""
+    @Query(value = """
             SELECT assignment
             FROM PhoneAssignment assignment
             JOIN FETCH assignment.person
@@ -36,7 +36,7 @@ public interface PhoneAssignmentRepository extends JpaRepository<PhoneAssignment
             """)
     List<PhoneAssignment> findHistoryByPhoneIdWithPerson(@Param("phoneId") Long phoneId);
 
-    @Query("""
+    @Query(value = """
             SELECT assignment
             FROM PhoneAssignment assignment
             JOIN FETCH assignment.phone phone
@@ -50,7 +50,7 @@ public interface PhoneAssignmentRepository extends JpaRepository<PhoneAssignment
             @Param("personId") Long personId
     );
 
-    @Query("""
+    @Query(value = """
             SELECT assignment
             FROM PhoneAssignment assignment
             JOIN FETCH assignment.phone
@@ -63,7 +63,7 @@ public interface PhoneAssignmentRepository extends JpaRepository<PhoneAssignment
             @Param("phoneIds") Collection<Long> phoneIds
     );
 
-    @Query("""
+    @Query(value = """
             SELECT assignment
             FROM PhoneAssignment assignment
             JOIN FETCH assignment.phone
@@ -76,7 +76,7 @@ public interface PhoneAssignmentRepository extends JpaRepository<PhoneAssignment
             @Param("phoneIds") Collection<Long> phoneIds
     );
 
-    @Query("""
+    @Query(value = """
             SELECT assignment
             FROM PhoneAssignment assignment
             JOIN FETCH assignment.phone phone
@@ -91,7 +91,7 @@ public interface PhoneAssignmentRepository extends JpaRepository<PhoneAssignment
             @Param("personIds") Collection<Long> personIds
     );
 
-    @Query("""
+    @Query(value = """
             SELECT person
             FROM Person person
             WHERE EXISTS (
@@ -143,7 +143,7 @@ public interface PhoneAssignmentRepository extends JpaRepository<PhoneAssignment
             Pageable pageable
     );
 
-    @Query("""
+    @Query(value = """
             SELECT assignment
             FROM PhoneAssignment assignment
             JOIN FETCH assignment.phone

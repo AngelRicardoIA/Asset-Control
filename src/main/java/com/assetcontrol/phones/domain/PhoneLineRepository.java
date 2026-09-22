@@ -12,7 +12,7 @@ public interface PhoneLineRepository extends JpaRepository<PhoneLine, Long> {
 
     boolean existsByNumberIgnoreCaseAndIdNot(String number, Long id);
 
-    @Query("""
+    @Query(value = """
             SELECT phoneLine
             FROM PhoneLine phoneLine
             WHERE NOT EXISTS (
@@ -24,7 +24,7 @@ public interface PhoneLineRepository extends JpaRepository<PhoneLine, Long> {
             """)
     List<PhoneLine> findAllAvailableForPhone();
 
-    @Query("""
+    @Query(value = """
             SELECT phoneLine
             FROM PhoneLine phoneLine
             WHERE NOT EXISTS (

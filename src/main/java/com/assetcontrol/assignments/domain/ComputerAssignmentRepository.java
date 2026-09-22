@@ -14,7 +14,7 @@ import java.util.Collection;
 public interface ComputerAssignmentRepository
         extends JpaRepository<ComputerAssignment, Long> {
 
-    @Query("""
+    @Query(value = """
             SELECT assignment
             FROM ComputerAssignment assignment
             JOIN FETCH assignment.person
@@ -25,7 +25,7 @@ public interface ComputerAssignmentRepository
             @Param("computerId") Long computerId
     );
 
-    @Query("""
+    @Query(value = """
             SELECT assignment
             FROM ComputerAssignment assignment
             JOIN FETCH assignment.computer computer
@@ -49,7 +49,7 @@ public interface ComputerAssignmentRepository
             Long computerId,
             AssignmentType assignmentType
     );
-    @Query("""
+    @Query(value = """
         SELECT assignment
         FROM ComputerAssignment assignment
         JOIN FETCH assignment.computer
@@ -59,7 +59,7 @@ public interface ComputerAssignmentRepository
     Optional<ComputerAssignment> findDetailedById(
             @Param("assignmentId") Long assignmentId
     );
-    @Query("""
+    @Query(value = """
         SELECT assignment
         FROM ComputerAssignment assignment
         JOIN FETCH assignment.computer
@@ -71,7 +71,7 @@ public interface ComputerAssignmentRepository
     List<ComputerAssignment> findActiveByComputerIdsWithPerson(
             @Param("computerIds") Collection<Long> computerIds
     );
-    @Query("""
+    @Query(value = """
         SELECT assignment
         FROM ComputerAssignment assignment
         JOIN FETCH assignment.computer
@@ -84,7 +84,7 @@ public interface ComputerAssignmentRepository
             @Param("computerIds") Collection<Long> computerIds
     );
 
-    @Query("""
+    @Query(value = """
         SELECT assignment
         FROM ComputerAssignment assignment
         JOIN FETCH assignment.computer computer
@@ -98,7 +98,7 @@ public interface ComputerAssignmentRepository
             @Param("personIds") Collection<Long> personIds
     );
 
-    @Query("""
+    @Query(value = """
         SELECT person
         FROM Person person
         WHERE EXISTS (

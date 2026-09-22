@@ -1,0 +1,81 @@
+From f915b8096c7d0a29acc0c3769d6c6f01357f051f Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Tue, 22 Sep 2026 18:55:25 -0300
+Subject: [PATCH] fix: name pagination query value alongside count query
+
+---
+ .../assignments/domain/ComputerAssignmentRepository.java        | 2 +-
+ .../com/assetcontrol/computers/domain/ComputerRepository.java   | 2 +-
+ .../java/com/assetcontrol/people/domain/PersonRepository.java   | 2 +-
+ .../assetcontrol/phones/domain/PhoneAssignmentRepository.java   | 2 +-
+ .../java/com/assetcontrol/phones/domain/PhoneRepository.java    | 2 +-
+ 5 files changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/src/main/java/com/assetcontrol/assignments/domain/ComputerAssignmentRepository.java b/src/main/java/com/assetcontrol/assignments/domain/ComputerAssignmentRepository.java
+index f1d2455..f983411 100644
+--- a/src/main/java/com/assetcontrol/assignments/domain/ComputerAssignmentRepository.java
++++ b/src/main/java/com/assetcontrol/assignments/domain/ComputerAssignmentRepository.java
+@@ -98,7 +98,7 @@ public interface ComputerAssignmentRepository
+             @Param("personIds") Collection<Long> personIds
+     );
+ 
+-    @Query(value = """
++    @Query(value = """
+         SELECT person
+         FROM Person person
+         WHERE EXISTS (
+diff --git a/src/main/java/com/assetcontrol/computers/domain/ComputerRepository.java b/src/main/java/com/assetcontrol/computers/domain/ComputerRepository.java
+index 685bf12..439043a 100644
+--- a/src/main/java/com/assetcontrol/computers/domain/ComputerRepository.java
++++ b/src/main/java/com/assetcontrol/computers/domain/ComputerRepository.java
+@@ -22,7 +22,7 @@ public interface ComputerRepository extends JpaRepository<Computer, Long> {
+ 
+     Optional<Computer> findByAssetIgnoreCase(String asset);
+ 
+-    @Query(value = """
++    @Query(value = """
+         SELECT computer
+         FROM Computer computer
+         JOIN FETCH computer.site
+diff --git a/src/main/java/com/assetcontrol/people/domain/PersonRepository.java b/src/main/java/com/assetcontrol/people/domain/PersonRepository.java
+index 1034d4c..aceb344 100644
+--- a/src/main/java/com/assetcontrol/people/domain/PersonRepository.java
++++ b/src/main/java/com/assetcontrol/people/domain/PersonRepository.java
+@@ -19,7 +19,7 @@ public interface PersonRepository extends JpaRepository<Person, Long> {
+     Optional<Person> findByExternalIdIgnoreCase(String externalId);
+     Optional<Person> findByUsernameIgnoreCase(String username);
+ 
+-    @Query(value = """
++    @Query(value = """
+             SELECT person
+             FROM Person person
+             WHERE :query = ''
+diff --git a/src/main/java/com/assetcontrol/phones/domain/PhoneAssignmentRepository.java b/src/main/java/com/assetcontrol/phones/domain/PhoneAssignmentRepository.java
+index 10dfc93..4413b02 100644
+--- a/src/main/java/com/assetcontrol/phones/domain/PhoneAssignmentRepository.java
++++ b/src/main/java/com/assetcontrol/phones/domain/PhoneAssignmentRepository.java
+@@ -91,7 +91,7 @@ public interface PhoneAssignmentRepository extends JpaRepository<PhoneAssignment
+             @Param("personIds") Collection<Long> personIds
+     );
+ 
+-    @Query(value = """
++    @Query(value = """
+             SELECT person
+             FROM Person person
+             WHERE EXISTS (
+diff --git a/src/main/java/com/assetcontrol/phones/domain/PhoneRepository.java b/src/main/java/com/assetcontrol/phones/domain/PhoneRepository.java
+index b33ff11..98f1dea 100644
+--- a/src/main/java/com/assetcontrol/phones/domain/PhoneRepository.java
++++ b/src/main/java/com/assetcontrol/phones/domain/PhoneRepository.java
+@@ -30,7 +30,7 @@ public interface PhoneRepository extends JpaRepository<Phone, Long> {
+             """)
+     List<Phone> findAllWithDetails();
+ 
+-    @Query(value = """
++    @Query(value = """
+             SELECT phone
+             FROM Phone phone
+             JOIN FETCH phone.site
+-- 
+2.51.1
+
