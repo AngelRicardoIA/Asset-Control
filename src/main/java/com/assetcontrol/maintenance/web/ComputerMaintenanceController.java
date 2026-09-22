@@ -3,6 +3,7 @@ package com.assetcontrol.maintenance.web;
 import com.assetcontrol.computers.application.ComputerService;
 import com.assetcontrol.maintenance.application.ComputerMaintenanceService;
 import com.assetcontrol.maintenance.domain.ComputerMaintenanceType;
+import com.assetcontrol.maintenance.domain.MaintenanceCheck;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -54,6 +55,27 @@ public class ComputerMaintenanceController {
         maintenanceService.create(form.toCommand(computerId));
 
         return "redirect:/computers/" + computerId;
+    }
+
+    @GetMapping("/preventive/new")
+    public String showPreventive(@PathVariable Long computerId, Model model) {
+        model.addAttribute("computer", computerService.findById(computerId));
+        model.addAttribute("checks", MaintenanceCheck.values());
+        model.addAttribute("form", new PreventiveMaintenanceForm());
+        return "maintenance/preventive";
+    }
+
+    @PostMapping("/preventive")
+    public String recordPreventive(@PathVariable Long computerId,
+                                   @Valid @ModelAttribute("form") PreventiveMaintenanceForm form,
+                                   BindingResult result, Model model) {
+        if (result.hasErrors()) {
+            model.addAttribute("computer", computerService.findById(computerId));
+            model.addAttribute("checks", MaintenanceCheck.values());
+            return "maintenance/preventive";
+        }
+        maintenanceService.createPreventive(form.toCommand(computerId));
+        return "redirect:/computers/" + computerId + "#mantenimiento";
     }
 
     private void prepareFormModel(Long computerId, Model model) {

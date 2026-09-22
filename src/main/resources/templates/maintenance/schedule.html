@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/document-head :: head('Programar mantenimiento')}"></head><body><header th:replace="~{fragments/app-header :: header}"></header>
+<main class="page-content narrow-content"><section class="page-heading"><div><p class="eyebrow">Mantenimientos</p><h1>Programar revisión</h1><p th:text="${due.computer.host + ' · ' + due.computer.brand + ' ' + due.computer.model}">Equipo</p></div></section>
+<form class="form-panel" th:action="@{/maintenance/computers/{id}/schedule(id=${due.computer.id})}" th:object="${form}" method="post"><div class="field-grid">
+<div class="form-field"><label for="nextDueAt">Próxima fecha</label><input id="nextDueAt" type="date" th:field="*{nextDueAt}"><small class="form-error" th:errors="*{nextDueAt}"></small></div>
+<div class="form-field"><label for="recordedBy">Programado por</label><input id="recordedBy" th:field="*{recordedBy}" maxlength="100"><small class="form-error" th:errors="*{recordedBy}"></small></div>
+<div class="form-field full-width"><label for="reason">Motivo</label><textarea id="reason" th:field="*{reason}" maxlength="500"></textarea><small class="form-error" th:errors="*{reason}"></small></div>
+</div><div class="form-actions"><a class="secondary-button" th:href="@{/computers/{id}(id=${due.computer.id})}">Cancelar</a><button class="primary-button" type="submit">Guardar fecha</button></div></form></main></body></html>

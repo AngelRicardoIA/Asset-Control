@@ -1,0 +1,24 @@
+.maintenance-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1.25rem; }
+.maintenance-summary__card { display: grid; gap: .4rem; padding: 1.2rem; border-radius: 1rem; box-shadow: var(--shadow-raised); color: var(--text-primary); text-decoration: none; }
+.maintenance-summary__card strong { font-size: 2rem; }
+.maintenance-summary__card span, .maintenance-item__actions small { color: var(--text-muted); }
+.maintenance-filter { display: grid; grid-template-columns: minmax(0, 1fr) minmax(11rem, .4fr) auto; gap: .8rem; margin: 1.5rem 0; }
+.maintenance-item__actions { display: flex; flex-wrap: wrap; gap: .7rem; align-items: center; justify-content: flex-end; }
+.maintenance-item__actions a:not(.secondary-button) { color: var(--accent); font-weight: 700; }
+.maintenance-host { color: var(--text-primary); font-weight: 800; }
+.maintenance-due--overdue { background: rgba(210, 38, 59, .16); color: #ae2137; }
+.maintenance-due--upcoming { background: rgba(221, 142, 22, .16); color: #9e6012; }
+.maintenance-due--current { background: rgba(37, 146, 92, .16); color: #226f4d; }
+.maintenance-pagination { display: flex; flex-wrap: wrap; justify-content: center; gap: .5rem; margin-top: 1.5rem; }
+.maintenance-pagination a { min-width: 2.4rem; padding: .5rem .7rem; border-radius: .6rem; box-shadow: var(--shadow-raised-small); color: var(--text-primary); text-align: center; text-decoration: none; }
+.maintenance-pagination .maintenance-pagination--current { background: var(--accent); color: #fff; }
+.maintenance-detail { display: flex; align-items: center; flex-wrap: wrap; gap: .8rem; margin-bottom: 1.5rem; }
+.maintenance-detail p { margin: 0; }
+.maintenance-checklist { display: flex; flex-wrap: wrap; gap: .45rem; margin: .4rem 0; }
+.maintenance-checklist span { padding: .3rem .55rem; border-radius: .5rem; box-shadow: var(--shadow-raised-small); }
+@media (max-width: 760px) { .maintenance-summary { grid-template-columns: 1fr; } .maintenance-filter { grid-template-columns: 1fr; } .maintenance-item__actions { justify-content: flex-start; } }
+
+.maintenance-schedule-log { border-radius: .9rem; box-shadow: var(--shadow-pressed); padding: 1rem; margin: 1rem 0; }
+.maintenance-schedule-log summary { color: var(--accent); font-weight: 700; cursor: pointer; }
+.maintenance-schedule-log div { display: flex; flex-wrap: wrap; gap: .6rem; padding: .65rem 0; border-bottom: 1px solid var(--color-shadow-dark); }
+.maintenance-schedule-log span { color: var(--text-muted); }

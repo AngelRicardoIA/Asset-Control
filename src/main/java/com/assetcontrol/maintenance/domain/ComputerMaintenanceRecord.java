@@ -40,6 +40,28 @@ public class ComputerMaintenanceRecord {
     @Column(nullable = false, length = 1000)
     private String description;
 
+    @Column(nullable = false)
+    private boolean preventive;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "updates_check", length = 20)
+    private MaintenanceCheck updatesCheck;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "drivers_check", length = 20)
+    private MaintenanceCheck driversCheck;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "external_cleaning", length = 20)
+    private MaintenanceCheck externalCleaning;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "internal_cleaning", length = 20)
+    private MaintenanceCheck internalCleaning;
+
+    @Column(name = "checklist_notes", length = 1000)
+    private String checklistNotes;
+
     @Column(name = "performed_by", nullable = false, length = 100)
     private String performedBy;
 
@@ -66,6 +88,29 @@ public class ComputerMaintenanceRecord {
         this.performedBy = performedBy;
     }
 
+    public static ComputerMaintenanceRecord preventive(
+            Computer computer,
+            LocalDate performedAt,
+            String description,
+            String performedBy,
+            MaintenanceCheck updatesCheck,
+            MaintenanceCheck driversCheck,
+            MaintenanceCheck externalCleaning,
+            MaintenanceCheck internalCleaning,
+            String checklistNotes
+    ) {
+        ComputerMaintenanceRecord record = new ComputerMaintenanceRecord(
+                computer, ComputerMaintenanceType.MAINTENANCE, performedAt, description, performedBy
+        );
+        record.preventive = true;
+        record.updatesCheck = updatesCheck;
+        record.driversCheck = driversCheck;
+        record.externalCleaning = externalCleaning;
+        record.internalCleaning = internalCleaning;
+        record.checklistNotes = checklistNotes;
+        return record;
+    }
+
     @PrePersist
     void onCreate() {
         LocalDateTime now = LocalDateTime.now();
@@ -80,6 +125,34 @@ public class ComputerMaintenanceRecord {
 
     public Long getId() {
         return id;
+    }
+
+    public Computer getComputer() {
+        return computer;
+    }
+
+    public boolean isPreventive() {
+        return preventive;
+    }
+
+    public MaintenanceCheck getUpdatesCheck() {
+        return updatesCheck;
+    }
+
+    public MaintenanceCheck getDriversCheck() {
+        return driversCheck;
+    }
+
+    public MaintenanceCheck getExternalCleaning() {
+        return externalCleaning;
+    }
+
+    public MaintenanceCheck getInternalCleaning() {
+        return internalCleaning;
+    }
+
+    public String getChecklistNotes() {
+        return checklistNotes;
     }
 
     public ComputerMaintenanceType getRecordType() {

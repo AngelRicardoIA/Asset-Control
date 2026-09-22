@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/document-head :: head('Revisión preventiva')}"></head>
+<body>
+<header th:replace="~{fragments/app-header :: header}"></header>
+<main class="page-content narrow-content">
+    <section class="page-heading"><div><p class="eyebrow">Mantenimientos</p><h1>Revisión preventiva</h1><p th:text="${computer.host + ' · ' + computer.brand + ' ' + computer.model}">Equipo</p></div></section>
+    <form class="form-panel" th:action="@{/computers/{id}/maintenance/preventive(id=${computer.id})}" th:object="${form}" method="post">
+        <div class="field-grid">
+            <div class="form-field"><label for="performedAt">Fecha de revisión</label><input id="performedAt" type="date" th:field="*{performedAt}"><small class="form-error" th:errors="*{performedAt}"></small></div>
+            <div class="form-field"><label for="performedBy">Realizado por</label><input id="performedBy" th:field="*{performedBy}" maxlength="100"><small class="form-error" th:errors="*{performedBy}"></small></div>
+            <div class="form-field"><label for="updatesCheck">Actualizaciones</label><select id="updatesCheck" th:field="*{updatesCheck}"><option value="">Selecciona una opción</option><option th:each="option : ${checks}" th:value="${option}" th:text="${option.label}"></option></select><small class="form-error" th:errors="*{updatesCheck}"></small></div>
+            <div class="form-field"><label for="driversCheck">Controladores</label><select id="driversCheck" th:field="*{driversCheck}"><option value="">Selecciona una opción</option><option th:each="option : ${checks}" th:value="${option}" th:text="${option.label}"></option></select><small class="form-error" th:errors="*{driversCheck}"></small></div>
+            <div class="form-field"><label for="externalCleaning">Limpieza externa</label><select id="externalCleaning" th:field="*{externalCleaning}"><option value="">Selecciona una opción</option><option th:each="option : ${checks}" th:value="${option}" th:text="${option.label}"></option></select><small class="form-error" th:errors="*{externalCleaning}"></small></div>
+            <div class="form-field"><label for="internalCleaning">Limpieza interna</label><select id="internalCleaning" th:field="*{internalCleaning}"><option value="">Selecciona una opción</option><option th:each="option : ${checks}" th:value="${option}" th:text="${option.label}"></option></select><small class="form-error" th:errors="*{internalCleaning}"></small></div>
+            <div class="form-field full-width"><label for="description">Trabajo realizado</label><textarea id="description" th:field="*{description}" maxlength="1000"></textarea><small class="form-error" th:errors="*{description}"></small></div>
+            <div class="form-field full-width"><label for="checklistNotes">Notas del checklist</label><textarea id="checklistNotes" th:field="*{checklistNotes}" maxlength="1000"></textarea><small class="field-help">Si algo no aplica, explica el motivo aquí.</small><small class="form-error" th:errors="*{checklistExplained}"></small></div>
+        </div>
+        <div class="form-actions"><a class="secondary-button" th:href="@{/computers/{id}(id=${computer.id})}">Cancelar</a><button class="primary-button" type="submit">Guardar revisión</button></div>
+    </form>
+</main>
+</body>
+</html>

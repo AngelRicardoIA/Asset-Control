@@ -186,14 +186,27 @@
         </div>
     </section>
 
-    <section class="form-panel maintenance-history">
+    <section class="form-panel maintenance-history" id="mantenimiento">
+        <div class="maintenance-detail" th:if="${maintenanceDue != null}">
+            <span class="status-badge" th:classappend="${' maintenance-due--' + maintenanceDue.status.name().toLowerCase()}" th:text="${'Mantenimiento: ' + maintenanceDue.status.label}">Mantenimiento</span>
+            <p th:text="${'Próxima revisión: ' + #temporals.format(maintenanceDue.nextDueAt, 'dd/MM/yyyy')}">Próxima revisión</p>
+            <a class="secondary-button" th:href="@{/computers/{id}/maintenance/preventive/new(id=${computer.id})}">Registrar revisión</a>
+            <a class="secondary-button" th:href="@{/maintenance/computers/{id}/schedule(id=${computer.id})}">Reprogramar</a>
+        </div>
         <div class="section-heading">
             <div>
                 <h2>Mantenimientos e historial técnico</h2>
-                <p>Reparaciones, cambios de componente y notas registradas.</p>
+                <p>Revisiones, reparaciones, cambios de componente y notas registradas.</p>
             </div>
         </div>
 
+        <details class="maintenance-schedule-log" th:if="${!#lists.isEmpty(maintenanceScheduleHistory)}">
+            <summary>Historial de fechas programadas</summary>
+            <div th:each="change : ${maintenanceScheduleHistory}">
+                <strong th:text="${#temporals.format(change.nextDueAt, 'dd/MM/yyyy')}">Fecha</strong>
+                <span th:text="${change.reason + ' · ' + change.recordedBy}">Motivo · Responsable</span>
+            </div>
+        </details>
         <div class="empty-state" th:if="${#lists.isEmpty(maintenanceRecords)}">
             <h3>Sin registros técnicos</h3>
             <p>Este equipo todavía no tiene mantenimientos registrados.</p>
@@ -205,6 +218,13 @@
                     <strong th:text="${record.recordType == T(com.assetcontrol.maintenance.domain.ComputerMaintenanceType).MAINTENANCE ? 'Mantenimiento' : record.recordType == T(com.assetcontrol.maintenance.domain.ComputerMaintenanceType).REPAIR ? 'Reparación' : record.recordType == T(com.assetcontrol.maintenance.domain.ComputerMaintenanceType).COMPONENT_REPLACEMENT ? 'Cambio de componente' : 'Nota técnica'}">Mantenimiento</strong>
                     <span th:text="${record.description}">Descripción</span>
                     <small th:text="${'Realizado por: ' + record.performedBy}">Realizado por</small>
+                    <div class="maintenance-checklist" th:if="${record.preventive}">
+                        <span th:text="${'Actualizaciones: ' + record.updatesCheck.label}"></span>
+                        <span th:text="${'Controladores: ' + record.driversCheck.label}"></span>
+                        <span th:text="${'Limpieza externa: ' + record.externalCleaning.label}"></span>
+                        <span th:text="${'Limpieza interna: ' + record.internalCleaning.label}"></span>
+                    </div>
+                    <small th:if="${record.checklistNotes != null}" th:text="${record.checklistNotes}"></small>
                 </div>
 
                 <small th:text="${#temporals.format(record.performedAt, 'dd/MM/yyyy')}">Fecha</small>

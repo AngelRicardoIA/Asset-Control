@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/document-head :: head('Frecuencia de mantenimiento')}"></head>
+<body><header th:replace="~{fragments/app-header :: header}"></header>
+<main class="page-content narrow-content"><section class="page-heading"><div><p class="eyebrow">Mantenimientos</p><h1>Frecuencia de revisión</h1><p>Define el intervalo de referencia para los equipos de cómputo.</p></div></section>
+<form class="form-panel" th:action="@{/maintenance/settings}" th:object="${form}" method="post"><div class="field-grid">
+<div class="form-field"><label for="intervalMonths">Revisar cada (meses)</label><input id="intervalMonths" type="number" min="1" max="60" th:field="*{intervalMonths}"><small class="form-error" th:errors="*{intervalMonths}"></small></div>
+<div class="form-field"><label for="warningDays">Avisar antes (días)</label><input id="warningDays" type="number" min="0" max="180" th:field="*{warningDays}"><small class="form-error" th:errors="*{warningDays}"></small></div>
+</div><p class="field-help">Esta configuración es general. Puedes ajustar la fecha de cada equipo desde su ficha.</p><div class="form-actions"><a class="secondary-button" th:href="@{/maintenance}">Cancelar</a><button class="primary-button" type="submit">Guardar configuración</button></div></form></main></body></html>

@@ -30,6 +30,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import com.assetcontrol.maintenance.application.ComputerMaintenanceService;
+import com.assetcontrol.maintenance.application.MaintenanceOverviewService;
 
 import java.util.List;
 import java.util.Map;
@@ -44,6 +45,7 @@ public class ComputerController {
     private final SiteService siteService;
     private final PersonService personService;
     private final ComputerMaintenanceService maintenanceService;
+    private final MaintenanceOverviewService maintenanceOverview;
 
     public ComputerController(
             ComputerService computerService,
@@ -51,7 +53,8 @@ public class ComputerController {
             ComputerAssignmentService assignmentService,
             SiteService siteService,
             PersonService personService,
-            ComputerMaintenanceService maintenanceService
+            ComputerMaintenanceService maintenanceService,
+            MaintenanceOverviewService maintenanceOverview
     ) {
         this.computerService = computerService;
         this.registrationService = registrationService;
@@ -59,6 +62,7 @@ public class ComputerController {
         this.siteService = siteService;
         this.personService = personService;
         this.maintenanceService = maintenanceService;
+        this.maintenanceOverview = maintenanceOverview;
     }
 
     @GetMapping
@@ -92,6 +96,9 @@ public class ComputerController {
                     .toList();
 
             model.addAttribute("computers", computers);
+            model.addAttribute("maintenanceDueById", maintenanceOverview.overview().computers().stream().collect(
+                    java.util.stream.Collectors.toMap(item -> item.computer().getId(), item -> item)
+            ));
             model.addAttribute(
                     "activeAssignmentsByComputerId",
                     assignmentService.findActiveByComputerIds(
@@ -115,6 +122,7 @@ public class ComputerController {
             model.addAttribute("pagination", new InventoryPagination(result));
 
             model.addAttribute("computers", List.of());
+            model.addAttribute("maintenanceDueById", Map.of());
             model.addAttribute("activeAssignmentsByComputerId", Map.of());
             model.addAttribute("lastClosedAssignmentByComputerId", Map.of());
             model.addAttribute("peopleWithAssets", people);
@@ -144,7 +152,10 @@ public class ComputerController {
 
     @GetMapping("/{id}")
     public String showComputerDetail(@PathVariable Long id, Model model) {
-        model.addAttribute("computer", computerService.findById(id));
+        var computer = computerService.findById(id);
+        model.addAttribute("computer", computer);
+        model.addAttribute("maintenanceDue", computer.getStatus() == ComputerStatus.RETIRED ? null : maintenanceOverview.findByComputerId(id));
+        model.addAttribute("maintenanceScheduleHistory", maintenanceOverview.scheduleHistory(id));
         model.addAttribute(
                 "assignments",
                 assignmentService.findHistoryByComputerId(id)

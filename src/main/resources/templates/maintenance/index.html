@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/document-head :: head('Mantenimientos')}"></head>
+<body>
+<header th:replace="~{fragments/app-header :: header}"></header>
+<main class="page-content">
+    <section class="page-heading">
+        <div><p class="eyebrow">Seguimiento</p><h1>Mantenimientos</h1><p>Programa revisiones y consulta pendientes. Los avisos no bloquean el inventario.</p></div>
+        <a class="secondary-button" th:href="@{/maintenance/settings}">Configurar frecuencia</a>
+    </section>
+    <p class="alert alert--success" th:if="${successMessage}" th:text="${successMessage}"></p>
+    <div class="maintenance-summary">
+        <a class="maintenance-summary__card" th:href="@{/maintenance(status='OVERDUE')}"><span>Vencidos</span><strong th:text="${overview.overdue()}">0</strong></a>
+        <a class="maintenance-summary__card" th:href="@{/maintenance(status='UPCOMING')}"><span>Próximos</span><strong th:text="${overview.upcoming()}">0</strong></a>
+        <a class="maintenance-summary__card" th:href="@{/maintenance(status='CURRENT')}"><span>Al día</span><strong th:text="${overview.current()}">0</strong></a>
+    </div>
+    <p class="field-help" th:text="${'Intervalo: ' + policy.intervalMonths + ' meses · Aviso: ' + policy.warningDays + ' días antes del vencimiento.'}"></p>
+    <form class="filter-panel maintenance-filter" th:action="@{/maintenance}" method="get">
+        <input name="query" type="search" aria-label="Buscar equipo" placeholder="Buscar host, asset, marca o modelo" th:value="${query}">
+        <select name="status" aria-label="Filtrar por estado"><option value="">Todos los estados</option><option th:each="option : ${statuses}" th:value="${option}" th:text="${option.label}" th:selected="${status == option}"></option></select>
+        <button class="primary-button" type="submit">Filtrar</button>
+    </form>
+    <section class="inventory-panel">
+        <p class="inventory-count" th:text="${total + ' equipos encontrados'}">0 equipos encontrados</p>
+        <p class="empty-state" th:if="${#lists.isEmpty(items)}">No hay equipos para mostrar.</p>
+        <div class="maintenance-list" th:unless="${#lists.isEmpty(items)}">
+            <article class="maintenance-item" th:each="item : ${items}">
+                <div class="maintenance-main">
+                    <a class="maintenance-host" th:href="@{/computers/{id}(id=${item.computer.id})}" th:text="${item.computer.host}">HOST</a>
+                    <span th:text="${item.computer.brand + ' ' + item.computer.model + ' · Asset ' + item.computer.asset}">Equipo</span>
+                    <small th:text="${'Última revisión: ' + (item.lastPreventiveAt == null ? 'Sin registro' : #temporals.format(item.lastPreventiveAt, 'dd/MM/yyyy'))}">Última revisión</small>
+                </div>
+                <div class="maintenance-item__actions">
+                    <span class="status-badge" th:classappend="${' maintenance-due--' + item.status.name().toLowerCase()}" th:text="${item.status.label}">Al día</span>
+                    <small th:text="${'Próxima: ' + #temporals.format(item.nextDueAt, 'dd/MM/yyyy')}">Próxima</small>
+                    <a class="secondary-button" th:href="@{/computers/{id}/maintenance/preventive/new(id=${item.computer.id})}">Registrar revisión</a>
+                    <a th:href="@{/maintenance/computers/{id}/schedule(id=${item.computer.id})}">Reprogramar</a>
+                </div>
+            </article>
+        </div>
+        <nav class="maintenance-pagination" aria-label="Páginas" th:if="${totalPages > 1}">
+            <a th:if="${currentPage > 1}" th:href="@{/maintenance(query=${query},status=${status},page=${currentPage - 1})}">Anterior</a>
+            <a th:each="number : ${visiblePages}" th:href="@{/maintenance(query=${query},status=${status},page=${number})}" th:text="${number}" th:classappend="${number == currentPage ? ' maintenance-pagination--current' : ''}" th:attr="aria-current=${number == currentPage ? 'page' : null}">1</a>
+            <a th:if="${currentPage < totalPages}" th:href="@{/maintenance(query=${query},status=${status},page=${currentPage + 1})}">Siguiente</a>
+        </nav>
+    </section>
+</main>
+</body>
+</html>

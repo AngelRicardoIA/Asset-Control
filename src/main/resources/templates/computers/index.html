@@ -158,6 +158,9 @@
             >
                 <div class="computer-main-data">
                     <strong th:text="${computer.host}">HOST-001</strong>
+                    <small th:if="${maintenanceDueById.containsKey(computer.id) and maintenanceDueById.get(computer.id).status != T(com.assetcontrol.maintenance.application.MaintenanceDueStatus).CURRENT}"
+                           th:text="${'Revisión: ' + maintenanceDueById.get(computer.id).status.label + ' · ' + #temporals.format(maintenanceDueById.get(computer.id).nextDueAt, 'dd/MM/yyyy')}"
+                           th:classappend="${maintenanceDueById.get(computer.id).status == T(com.assetcontrol.maintenance.application.MaintenanceDueStatus).OVERDUE ? ' assignment-expired' : ''}"></small>
                     <span th:text="${computer.brand + ' ' + computer.model}">Marca Modelo</span>
                     <small th:text="${'Asset: ' + computer.asset + ' · ' + computer.site.name}">
                         Asset · Ubicación
