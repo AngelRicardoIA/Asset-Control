@@ -3,16 +3,25 @@ package com.assetcontrol.assignments.domain;
 import com.assetcontrol.people.domain.Person;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-import java.util.Collection;
 
 public interface ComputerAssignmentRepository
         extends JpaRepository<ComputerAssignment, Long> {
+
+    long countByAssignmentTypeAndReturnedAtIsNullAndDueDateBefore(AssignmentType type, LocalDate today);
+
+    @EntityGraph(attributePaths = {"computer", "person"})
+    List<ComputerAssignment> findTop5ByAssignmentTypeAndReturnedAtIsNullAndDueDateBeforeOrderByDueDateAscIdAsc(
+            AssignmentType type, LocalDate today
+    );
 
     @Query(value = """
             SELECT assignment

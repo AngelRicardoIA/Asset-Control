@@ -10,6 +10,8 @@
 
     public interface ComputerRepository extends JpaRepository<Computer, Long> {
 
+        long countByStatus(ComputerStatus status);
+
         boolean existsByAssetIgnoreCase(String asset);
 
         boolean existsByHostIgnoreCase(String host);

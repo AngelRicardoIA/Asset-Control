@@ -6,53 +6,106 @@
 
 <main class="dashboard">
     <section class="dashboard__intro">
-        <p class="eyebrow">Gestión de inventario</p>
-        <h1>Todos los activos TI en un solo lugar</h1>
-        <p class="dashboard__description">
-            Consulta, administra y da seguimiento a los equipos asignados desde un único espacio.
-        </p>
+        <p class="eyebrow">Resumen del inventario</p>
+        <h1>Dashboard</h1>
+        <p class="dashboard__description">Consulta el estado actual de tus equipos y localiza los préstamos pendientes.</p>
     </section>
 
-    <section class="asset-grid" aria-label="Categorías de activos">
-        <a class="asset-card" th:href="@{/computers}">
-            <div class="asset-card__icon">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <rect x="4" y="5" width="16" height="11" rx="1"/>
-                    <path d="M2 19h20M9 19l1-3h4l1 3"/>
-                </svg>
-            </div>
-            <div class="asset-card__content">
-                <h2>Equipos de cómputo</h2>
-                <p>Laptops y computadoras de escritorio.</p>
-            </div>
+    <section class="dashboard__totals" aria-label="Totales del inventario">
+        <a class="dashboard-total" th:href="@{/computers}">
+            <span>Computadoras</span>
+            <strong th:text="${overview.computers().total()}">0</strong>
+            <small th:text="${overview.computers().assigned() + overview.computers().loaned() + ' en uso'}">0 en uso</small>
         </a>
-
-        <a class="asset-card" th:href="@{/phones}">
-            <div class="asset-card__icon">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <rect x="7" y="3" width="10" height="18" rx="2"/>
-                    <path d="M10 18h4"/>
-                </svg>
-            </div>
-            <div class="asset-card__content">
-                <h2>Teléfonos</h2>
-                <p>Dispositivos, IMEI y líneas telefónicas.</p>
-            </div>
+        <a class="dashboard-total" th:href="@{/phones}">
+            <span>Teléfonos</span>
+            <strong th:text="${overview.phones().total()}">0</strong>
+            <small th:text="${overview.phones().assigned() + overview.phones().loaned() + ' en uso'}">0 en uso</small>
         </a>
+        <a class="dashboard-total" th:href="@{/people}">
+            <span>Personas</span>
+            <strong th:text="${overview.people()}">0</strong>
+            <small>Ver directorio</small>
+        </a>
+    </section>
 
-        <article class="asset-card">
-            <div class="asset-card__icon">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <rect x="5" y="4" width="14" height="16" rx="2"/>
-                    <path d="M9 8h6M9 12h6M9 16h3"/>
-                </svg>
+    <section class="dashboard__section" aria-labelledby="dashboard-status-title">
+        <div class="dashboard__section-heading">
+            <div>
+                <p class="eyebrow">Inventario</p>
+                <h2 id="dashboard-status-title">Estado de los activos</h2>
             </div>
-            <div class="asset-card__content">
-                <h2>Accesorios</h2>
-                <p>Monitores, cargadores y periféricos.</p>
+        </div>
+        <div class="dashboard__status-grid">
+            <div class="dashboard-status">
+                <div class="dashboard-status__heading"><h3>Computadoras</h3><a th:href="@{/computers}">Ver todas</a></div>
+                <a th:href="@{/computers(status='AVAILABLE')}"><span>Disponibles</span><strong th:text="${overview.computers().available()}">0</strong></a>
+                <a th:href="@{/computers(status='ASSIGNED')}"><span>Asignadas</span><strong th:text="${overview.computers().assigned()}">0</strong></a>
+                <a th:href="@{/computers(status='LOANED')}"><span>En préstamo</span><strong th:text="${overview.computers().loaned()}">0</strong></a>
+                <a th:href="@{/computers(status='RETIRED')}"><span>De baja</span><strong th:text="${overview.computers().retired()}">0</strong></a>
             </div>
-            <span class="asset-card__action">Próximamente</span>
-        </article>
+            <div class="dashboard-status">
+                <div class="dashboard-status__heading"><h3>Teléfonos</h3><a th:href="@{/phones}">Ver todos</a></div>
+                <a th:href="@{/phones(status='AVAILABLE')}"><span>Disponibles</span><strong th:text="${overview.phones().available()}">0</strong></a>
+                <a th:href="@{/phones(status='ASSIGNED')}"><span>Asignados</span><strong th:text="${overview.phones().assigned()}">0</strong></a>
+                <a th:href="@{/phones(status='LOANED')}"><span>En préstamo</span><strong th:text="${overview.phones().loaned()}">0</strong></a>
+                <a th:href="@{/phones(status='RETIRED')}"><span>De baja</span><strong th:text="${overview.phones().retired()}">0</strong></a>
+            </div>
+        </div>
+    </section>
+
+    <section class="dashboard__section dashboard__section--loans" aria-labelledby="dashboard-loans-title">
+        <div class="dashboard__section-heading">
+            <div>
+                <p class="eyebrow">Seguimiento</p>
+                <h2 id="dashboard-loans-title">Préstamos vencidos <span class="dashboard__count" th:text="${overview.overdueLoans()}">0</span></h2>
+            </div>
+        </div>
+        <p class="dashboard__empty" th:if="${overview.overdueLoans() == 0}">No hay préstamos vencidos.</p>
+        <div class="dashboard__loan-list" th:if="${overview.overdueLoans() > 0}">
+            <div class="dashboard-loan" th:each="loan : ${overview.recentOverdueLoans()}">
+                <div>
+                    <span class="dashboard-loan__category" th:text="${loan.computer() ? 'Computadora' : 'Teléfono'}">Computadora</span>
+                    <strong th:text="${loan.identity()}">Equipo</strong>
+                    <small th:text="${'Usuario: ' + loan.username() + ' · Venció: ' + #temporals.format(loan.dueDate(), 'dd/MM/yyyy')}">Usuario y fecha</small>
+                </div>
+                <a th:if="${loan.computer()}" th:href="@{/computers/{id}(id=${loan.assetId()})}">Ver equipo</a>
+                <a th:unless="${loan.computer()}" th:href="@{/phones/{id}(id=${loan.assetId()})}">Ver teléfono</a>
+            </div>
+            <p class="dashboard__more" th:if="${overview.overdueLoans() > 5}">Se muestran los 5 préstamos con vencimiento más antiguo.</p>
+        </div>
+    </section>
+
+    <section class="dashboard__section" aria-labelledby="dashboard-actions-title">
+        <div class="dashboard__section-heading">
+            <div>
+                <p class="eyebrow">Accesos rápidos</p>
+                <h2 id="dashboard-actions-title">Ir a una sección</h2>
+            </div>
+        </div>
+        <div class="asset-grid">
+            <a class="asset-card" th:href="@{/computers}">
+                <div class="asset-card__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="11" rx="1"/><path d="M2 19h20M9 19l1-3h4l1 3"/></svg></div>
+                <div class="asset-card__content"><h3>Equipos de cómputo</h3><p>Laptops y computadoras de escritorio.</p></div>
+                <span class="asset-card__action">Abrir inventario</span>
+            </a>
+            <a class="asset-card" th:href="@{/phones}">
+                <div class="asset-card__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M10 18h4"/></svg></div>
+                <div class="asset-card__content"><h3>Teléfonos</h3><p>Dispositivos, IMEI y líneas telefónicas.</p></div>
+                <span class="asset-card__action">Abrir inventario</span>
+            </a>
+            <article class="asset-card asset-card--pending">
+                <div class="asset-card__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="14" height="16" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/></svg></div>
+                <div class="asset-card__content"><h3>Accesorios</h3><p>Monitores, cargadores y periféricos.</p></div>
+                <span class="asset-card__action">Próximamente</span>
+            </article>
+        </div>
+        <div class="dashboard__shortcuts">
+            <a th:href="@{/computers/new}">Nueva computadora</a>
+            <a th:href="@{/phones/new}">Nuevo teléfono</a>
+            <a th:href="@{/people}">Administrar personas</a>
+            <a th:href="@{/inventory/export}">Exportar inventario</a>
+        </div>
     </section>
 </main>
 </body>

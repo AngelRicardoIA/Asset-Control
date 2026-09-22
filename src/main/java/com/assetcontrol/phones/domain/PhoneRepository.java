@@ -11,6 +11,8 @@ import java.util.Optional;
 
 public interface PhoneRepository extends JpaRepository<Phone, Long> {
 
+    long countByStatus(PhoneStatus status);
+
     boolean existsByImeiIgnoreCase(String imei);
 
     boolean existsByImeiIgnoreCaseAndIdNot(String imei, Long id);
