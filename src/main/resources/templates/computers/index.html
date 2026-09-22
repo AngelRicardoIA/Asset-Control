@@ -61,18 +61,23 @@
         >Personas</a>
     </nav>
 
-    <form class="filter-panel filter-panel--inventory" th:action="@{/computers}" method="get">
+    <form class="filter-panel filter-panel--inventory" th:classappend="${view == T(com.assetcontrol.shared.web.InventoryView).PEOPLE ? ' filter-panel--people-view' : ''}" th:action="@{/computers}" method="get">
         <input type="hidden" name="view" th:value="${view}">
 
-        <input
-                class="filter-search"
-                type="search"
-                name="query"
-                th:value="${query}"
-                th:placeholder="${view == T(com.assetcontrol.shared.web.InventoryView).EQUIPMENT ? 'Hostname, usuario, nombre, asset, marca o modelo' : 'Usuario, nombre, ID o correo'}"
-        >
+        <div class="filter-panel__search">
+            <input
+                    class="filter-search"
+                    type="search"
+                    name="query"
+                    aria-label="Buscar en el inventario"
+                    th:value="${query}"
+                    th:placeholder="${view == T(com.assetcontrol.shared.web.InventoryView).EQUIPMENT ? 'Hostname, usuario, nombre, asset, marca o modelo' : 'Usuario, nombre, ID o correo'}"
+            >
+            <button class="primary-button filter-panel__submit" type="submit">Filtrar</button>
+        </div>
 
-        <select name="siteId">
+        <div class="filter-panel__options">
+        <select name="siteId" aria-label="Ubicación">
             <option value="">Todas las ubicaciones</option>
             <option
                     th:each="site : ${sites}"
@@ -84,6 +89,7 @@
 
         <select
                 name="status"
+                aria-label="Estado"
                 th:if="${view == T(com.assetcontrol.shared.web.InventoryView).EQUIPMENT}"
         >
             <option value="">Todos los estados</option>
@@ -97,6 +103,7 @@
 
         <select
                 name="type"
+                aria-label="Tipo de equipo"
                 th:if="${view == T(com.assetcontrol.shared.web.InventoryView).EQUIPMENT}"
         >
             <option value="">Todos los tipos</option>
@@ -126,7 +133,7 @@
             ></option>
         </select>
 
-        <button class="secondary-button" type="submit">Filtrar</button>
+        </div>
     </form>
 
     <section

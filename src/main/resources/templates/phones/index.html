@@ -36,18 +36,23 @@
         >Personas</a>
     </nav>
 
-    <form class="filter-panel filter-panel--inventory" th:action="@{/phones}" method="get">
+    <form class="filter-panel filter-panel--inventory filter-panel--phones" th:classappend="${view == T(com.assetcontrol.shared.web.InventoryView).PEOPLE ? ' filter-panel--people-view' : ''}" th:action="@{/phones}" method="get">
         <input type="hidden" name="view" th:value="${view}">
 
-        <input
-                class="filter-search"
-                type="search"
-                name="query"
-                th:value="${query}"
-                th:placeholder="${view == T(com.assetcontrol.shared.web.InventoryView).EQUIPMENT ? 'IMEI, usuario, marca, modelo, línea o ubicación' : 'Usuario, nombre, ID o correo'}"
-        >
+        <div class="filter-panel__search">
+            <input
+                    class="filter-search"
+                    type="search"
+                    name="query"
+                    aria-label="Buscar en teléfonos"
+                    th:value="${query}"
+                    th:placeholder="${view == T(com.assetcontrol.shared.web.InventoryView).EQUIPMENT ? 'IMEI, usuario, marca, modelo, línea o ubicación' : 'Usuario, nombre, ID o correo'}"
+            >
+            <button class="primary-button filter-panel__submit" type="submit">Filtrar</button>
+        </div>
 
-        <select name="siteId">
+        <div class="filter-panel__options">
+        <select name="siteId" aria-label="Ubicación">
             <option value="">Todas las ubicaciones</option>
             <option
                     th:each="site : ${sites}"
@@ -59,6 +64,7 @@
 
         <select
                 name="status"
+                aria-label="Estado"
                 th:if="${view == T(com.assetcontrol.shared.web.InventoryView).EQUIPMENT}"
         >
             <option value="">Todos los estados</option>
@@ -88,7 +94,7 @@
             ></option>
         </select>
 
-        <button class="secondary-button" type="submit">Filtrar</button>
+        </div>
     </form>
 
     <p class="alert alert--success" th:if="${successMessage}" th:text="${successMessage}"></p>

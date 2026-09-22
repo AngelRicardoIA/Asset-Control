@@ -19,14 +19,19 @@
     </section>
 
     <form class="filter-panel filter-panel--people" th:action="@{/people}" method="get">
-        <input
-                class="filter-search"
-                type="search"
-                name="query"
-                th:value="${query}"
-                placeholder="Nombre, usuario, número de empleado, correo, puesto o área"
-        >
+        <div class="filter-panel__search">
+            <input
+                    class="filter-search"
+                    type="search"
+                    name="query"
+                    aria-label="Buscar personas"
+                    th:value="${query}"
+                    placeholder="Nombre, usuario, número de empleado, correo, puesto o área"
+            >
+            <button class="primary-button filter-panel__submit" type="submit">Buscar</button>
+        </div>
 
+        <div class="filter-panel__options">
         <select name="sort" aria-label="Criterio de ordenamiento">
             <option
                     th:each="sortOption : ${sortOptions}"
@@ -45,7 +50,7 @@
             ></option>
         </select>
 
-        <button class="secondary-button" type="submit">Buscar</button>
+        </div>
     </form>
 
     <p class="alert alert--success" th:if="${successMessage}" th:text="${successMessage}"></p>
