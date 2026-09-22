@@ -1,0 +1,318 @@
+From 30f43a85e210120ddf56c456cf98783e5e326181 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Tue, 22 Sep 2026 12:44:08 -0600
+Subject: [PATCH] refactor: add compact inventory action toolbar
+
+---
+ src/main/resources/static/css/forms.css       | 105 ++++++++++++++++++
+ .../resources/templates/computers/detail.html |  37 ++++--
+ .../resources/templates/computers/index.html  |  39 +++++--
+ .../resources/templates/fragments/icons.html  |  66 +++++++++++
+ 4 files changed, 231 insertions(+), 16 deletions(-)
+ create mode 100644 src/main/resources/templates/fragments/icons.html
+
+diff --git a/src/main/resources/static/css/forms.css b/src/main/resources/static/css/forms.css
+index 4bcdaa2..7b265c0 100644
+--- a/src/main/resources/static/css/forms.css
++++ b/src/main/resources/static/css/forms.css
+@@ -450,6 +450,107 @@
+     gap: 0.75rem;
+ }
+ 
++.action-toolbar {
++    display: inline-flex;
++    align-items: center;
++    align-self: flex-end;
++    flex-wrap: wrap;
++    gap: 0.55rem;
++    padding: 0.55rem;
++    border-radius: 1rem;
++    box-shadow: var(--shadow-pressed);
++}
++
++.icon-action {
++    position: relative;
++    display: inline-grid;
++    width: 2.85rem;
++    height: 2.85rem;
++    flex: 0 0 2.85rem;
++    place-items: center;
++    border: 0;
++    border-radius: 0.85rem;
++    background: var(--surface);
++    box-shadow: var(--shadow-raised-small);
++    color: var(--text-primary);
++    cursor: pointer;
++    text-decoration: none;
++    transition: background-color 160ms ease, box-shadow 160ms ease, color 160ms ease, transform 160ms ease;
++}
++
++.icon-action svg {
++    width: 1.25rem;
++    height: 1.25rem;
++    fill: none;
++    stroke: currentColor;
++    stroke-linecap: round;
++    stroke-linejoin: round;
++    stroke-width: 1.9;
++}
++
++.icon-action:hover {
++    color: var(--accent);
++    transform: translateY(-2px);
++}
++
++.icon-action:active {
++    box-shadow: var(--shadow-pressed);
++    transform: translateY(0);
++}
++
++.icon-action:focus-visible {
++    outline: 2px solid var(--accent);
++    outline-offset: 3px;
++}
++
++.icon-action--primary {
++    background: var(--accent);
++    color: #ffffff;
++}
++
++.icon-action--primary:hover {
++    background: var(--color-accent-strong);
++    color: #ffffff;
++}
++
++.icon-action--info {
++    background: var(--color-action-blue);
++    color: #ffffff;
++}
++
++.icon-action--info:hover {
++    background: var(--color-action-blue-hover);
++    color: #ffffff;
++}
++
++.icon-action::after {
++    position: absolute;
++    top: calc(100% + 0.65rem);
++    right: 0;
++    z-index: 20;
++    padding: 0.45rem 0.65rem;
++    border-radius: 0.55rem;
++    background: var(--text-primary);
++    color: var(--surface);
++    content: attr(data-tooltip);
++    font-size: 0.75rem;
++    font-weight: 700;
++    line-height: 1;
++    opacity: 0;
++    pointer-events: none;
++    transform: translateY(-0.25rem);
++    transition: opacity 140ms ease, transform 140ms ease, visibility 140ms ease;
++    visibility: hidden;
++    white-space: nowrap;
++}
++
++.icon-action:hover::after,
++.icon-action:focus-visible::after {
++    opacity: 1;
++    transform: translateY(0);
++    visibility: visible;
++}
++
+ .assignment-history {
+     margin-bottom: 1.5rem;
+ }
+@@ -792,6 +893,10 @@
+         flex-direction: column;
+     }
+ 
++    .action-toolbar {
++        align-self: flex-start;
++    }
++
+     .filter-panel,
+     .field-grid,
+     .detail-grid,
+diff --git a/src/main/resources/templates/computers/detail.html b/src/main/resources/templates/computers/detail.html
+index 0caef9b..5215208 100644
+--- a/src/main/resources/templates/computers/detail.html
++++ b/src/main/resources/templates/computers/detail.html
+@@ -12,21 +12,40 @@
+             <p th:text="${computer.brand + ' ' + computer.model}">Marca Modelo</p>
+         </div>
+ 
+-        <div class="page-actions">
+-            <a class="secondary-button" th:href="@{/computers}">Volver al inventario</a>
++        <nav class="action-toolbar" aria-label="Acciones del equipo">
+             <a
+-                    class="secondary-button"
++                    class="icon-action"
++                    th:href="@{/computers}"
++                    aria-label="Volver al inventario"
++                    data-tooltip="Volver al inventario"
++            >
++                <svg th:replace="~{fragments/icons :: arrowLeft}"></svg>
++            </a>
++            <a
++                    class="icon-action"
+                     th:href="@{/computers/{id}/edit(id=${computer.id})}"
+-            >Editar equipo</a>
++                    aria-label="Editar equipo"
++                    data-tooltip="Editar equipo"
++            >
++                <svg th:replace="~{fragments/icons :: pencil}"></svg>
++            </a>
+             <a
+-                    class="primary-button"
++                    class="icon-action"
+                     th:href="@{/computers/{computerId}/maintenance/new(computerId=${computer.id})}"
+-            >Registrar mantenimiento</a>
++                    aria-label="Registrar mantenimiento"
++                    data-tooltip="Registrar mantenimiento"
++            >
++                <svg th:replace="~{fragments/icons :: wrench}"></svg>
++            </a>
+             <a
+-                    class="primary-button"
++                    class="icon-action icon-action--primary"
+                     th:href="@{/computers/{computerId}/assignments/new(computerId=${computer.id})}"
+-            >Asignar equipo</a>
+-        </div>
++                    aria-label="Asignar equipo"
++                    data-tooltip="Asignar equipo"
++            >
++                <svg th:replace="~{fragments/icons :: userPlus}"></svg>
++            </a>
++        </nav>
+     </section>
+ 
+     <p class="alert alert--success" th:if="${successMessage}" th:text="${successMessage}"></p>
+diff --git a/src/main/resources/templates/computers/index.html b/src/main/resources/templates/computers/index.html
+index bc9b9de..af4c6e1 100644
+--- a/src/main/resources/templates/computers/index.html
++++ b/src/main/resources/templates/computers/index.html
+@@ -11,16 +11,41 @@
+             <h1>Equipos de cómputo</h1>
+             <p>Consulta, filtra y administra laptops y equipos de escritorio.</p>
+         </div>
+-        <div class="page-actions">
++        <nav class="action-toolbar" aria-label="Acciones del inventario">
+             <a
+-                    class="secondary-button"
++                    class="icon-action"
+                     th:if="${view == T(com.assetcontrol.shared.web.InventoryView).PEOPLE}"
+                     th:href="@{/people}"
+-            >Administrar personas</a>
+-            <a class="secondary-button" th:href="@{/inventory/export}">Exportar</a>
+-            <a class="secondary-button" th:href="@{/assignment-imports/computers}">Importar</a>
+-            <a class="primary-button" th:href="@{/computers/new}">Nuevo equipo</a>
+-        </div>
++                    aria-label="Administrar personas"
++                    data-tooltip="Administrar personas"
++            >
++                <svg th:replace="~{fragments/icons :: users}"></svg>
++            </a>
++            <a
++                    class="icon-action"
++                    th:href="@{/inventory/export}"
++                    aria-label="Exportar inventario"
++                    data-tooltip="Exportar inventario"
++            >
++                <svg th:replace="~{fragments/icons :: download}"></svg>
++            </a>
++            <a
++                    class="icon-action"
++                    th:href="@{/assignment-imports/computers}"
++                    aria-label="Importar asignaciones"
++                    data-tooltip="Importar asignaciones"
++            >
++                <svg th:replace="~{fragments/icons :: upload}"></svg>
++            </a>
++            <a
++                    class="icon-action icon-action--primary"
++                    th:href="@{/computers/new}"
++                    aria-label="Registrar equipo"
++                    data-tooltip="Registrar equipo"
++            >
++                <svg th:replace="~{fragments/icons :: plus}"></svg>
++            </a>
++        </nav>
+     </section>
+ 
+     <nav class="inventory-view-toggle" aria-label="Vista del inventario">
+diff --git a/src/main/resources/templates/fragments/icons.html b/src/main/resources/templates/fragments/icons.html
+new file mode 100644
+index 0000000..3994e17
+--- /dev/null
++++ b/src/main/resources/templates/fragments/icons.html
+@@ -0,0 +1,66 @@
++<!DOCTYPE html>
++<html lang="es" xmlns:th="https://www.thymeleaf.org">
++<body>
++<svg th:fragment="arrowLeft" viewBox="0 0 24 24" aria-hidden="true">
++    <path d="M19 12H5M11 18l-6-6 6-6"/>
++</svg>
++
++<svg th:fragment="pencil" viewBox="0 0 24 24" aria-hidden="true">
++    <path d="m4 20 4.5-1 10-10a2.1 2.1 0 0 0-3-3l-10 10L4 20Z"/>
++    <path d="m14.5 7.5 3 3"/>
++</svg>
++
++<svg th:fragment="wrench" viewBox="0 0 24 24" aria-hidden="true">
++    <path d="M14.7 6.3a4 4 0 0 0-5-5L12 3.6 9.6 6 7.3 3.7a4 4 0 0 0 5 5l-8.4 8.4a2.1 2.1 0 0 0 3 3l8.4-8.4a4 4 0 0 0 5-5L20 6.4 17.6 9l-2.3-2.7Z"/>
++</svg>
++
++<svg th:fragment="userPlus" viewBox="0 0 24 24" aria-hidden="true">
++    <path d="M15 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
++    <circle cx="8.5" cy="7" r="4"/>
++    <path d="M19 8v6M22 11h-6"/>
++</svg>
++
++<svg th:fragment="users" viewBox="0 0 24 24" aria-hidden="true">
++    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
++    <circle cx="8.5" cy="7" r="4"/>
++    <path d="M17 11a4 4 0 0 0 0-8M23 21v-2a4 4 0 0 0-3-3.87"/>
++</svg>
++
++<svg th:fragment="download" viewBox="0 0 24 24" aria-hidden="true">
++    <path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>
++</svg>
++
++<svg th:fragment="upload" viewBox="0 0 24 24" aria-hidden="true">
++    <path d="M12 21V9M7 14l5-5 5 5M5 3h14"/>
++</svg>
++
++<svg th:fragment="plus" viewBox="0 0 24 24" aria-hidden="true">
++    <path d="M12 5v14M5 12h14"/>
++</svg>
++
++<svg th:fragment="fileText" viewBox="0 0 24 24" aria-hidden="true">
++    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/>
++    <path d="M14 2v6h6M8 13h8M8 17h6"/>
++</svg>
++
++<svg th:fragment="tag" viewBox="0 0 24 24" aria-hidden="true">
++    <path d="M20.6 13.6 11 23.2 1.8 14V2h12l9.2 9.2a3.4 3.4 0 0 1-2.4 2.4Z" transform="scale(.86) translate(1.8 .4)"/>
++    <circle cx="8" cy="8" r="1.5"/>
++</svg>
++
++<svg th:fragment="returnAsset" viewBox="0 0 24 24" aria-hidden="true">
++    <path d="M9 14 4 9l5-5"/>
++    <path d="M4 9h10a6 6 0 0 1 0 12h-3"/>
++</svg>
++
++<svg th:fragment="computer" viewBox="0 0 24 24" aria-hidden="true">
++    <rect x="3" y="4" width="18" height="13" rx="2"/>
++    <path d="M8 21h8M12 17v4"/>
++</svg>
++
++<svg th:fragment="phone" viewBox="0 0 24 24" aria-hidden="true">
++    <rect x="7" y="2" width="10" height="20" rx="2"/>
++    <path d="M11 18h2"/>
++</svg>
++</body>
++</html>
+-- 
+2.51.1
+
