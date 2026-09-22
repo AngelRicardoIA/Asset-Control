@@ -20,11 +20,31 @@
 
     <form class="filter-panel filter-panel--people" th:action="@{/people}" method="get">
         <input
+                class="filter-search"
                 type="search"
                 name="query"
                 th:value="${query}"
                 placeholder="Nombre, usuario, número de empleado, correo, puesto o área"
         >
+
+        <select name="sort" aria-label="Criterio de ordenamiento">
+            <option
+                    th:each="sortOption : ${sortOptions}"
+                    th:value="${sortOption}"
+                    th:selected="${sortOption == selectedSort}"
+                    th:text="${sortOption.label}"
+            ></option>
+        </select>
+
+        <select name="direction" aria-label="Dirección del ordenamiento">
+            <option
+                    th:each="directionOption : ${directionOptions}"
+                    th:value="${directionOption}"
+                    th:selected="${directionOption == selectedDirection}"
+                    th:text="${directionOption.label}"
+            ></option>
+        </select>
+
         <button class="secondary-button" type="submit">Buscar</button>
     </form>
 
@@ -50,6 +70,10 @@
                             th:if="${person.jobTitle != null or person.department != null}"
                             th:text="${(person.jobTitle ?: 'Puesto sin registrar') + ' · ' + (person.department ?: 'Área sin registrar')}"
                     >Puesto · Área</small>
+                    <small
+                            th:if="${selectedSort == T(com.assetcontrol.shared.web.InventorySort).CHRONOLOGICAL}"
+                            th:text="${'Registrado: ' + #temporals.format(person.createdAt, 'dd/MM/yyyy HH:mm')}"
+                    >Registrado</small>
                 </div>
                 <span class="person-directory-item__action">Ver perfil</span>
             </a>

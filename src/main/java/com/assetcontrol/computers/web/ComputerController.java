@@ -13,6 +13,9 @@ import com.assetcontrol.people.application.DuplicatePersonIdentifierException;
 import com.assetcontrol.people.application.DuplicatePersonUsernameException;
 import com.assetcontrol.people.application.PersonService;
 import com.assetcontrol.people.domain.Person;
+import com.assetcontrol.shared.web.InventoryOrdering;
+import com.assetcontrol.shared.web.InventorySort;
+import com.assetcontrol.shared.web.InventorySortDirection;
 import com.assetcontrol.shared.web.InventoryView;
 import com.assetcontrol.sites.application.SiteService;
 import jakarta.validation.Valid;
@@ -27,12 +30,27 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import com.assetcontrol.maintenance.application.ComputerMaintenanceService;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
 @Controller
 @RequestMapping("/computers")
 public class ComputerController {
+
+    private static final Comparator<Computer> COMPUTER_ALPHABETICAL_ORDER = Comparator
+            .comparing(Computer::getHost, String.CASE_INSENSITIVE_ORDER)
+            .thenComparing(Computer::getId);
+    private static final Comparator<Computer> COMPUTER_CHRONOLOGICAL_ORDER = Comparator
+            .comparing(Computer::getCreatedAt)
+            .thenComparing(Computer::getId);
+    private static final Comparator<Person> PERSON_ALPHABETICAL_ORDER = Comparator
+            .comparing(Person::getFullName, String.CASE_INSENSITIVE_ORDER)
+            .thenComparing(Person::getUsername, String.CASE_INSENSITIVE_ORDER)
+            .thenComparing(Person::getId);
+    private static final Comparator<Person> PERSON_CHRONOLOGICAL_ORDER = Comparator
+            .comparing(Person::getCreatedAt)
+            .thenComparing(Person::getId);
 
     private final ComputerService computerService;
     private final ComputerRegistrationService registrationService;
@@ -64,14 +82,17 @@ public class ComputerController {
             @RequestParam(required = false) ComputerType type,
             @RequestParam(required = false) Long siteId,
             @RequestParam(defaultValue = "EQUIPMENT") InventoryView view,
+            @RequestParam(defaultValue = "ALPHABETICAL") InventorySort sort,
+            @RequestParam(defaultValue = "ASCENDING") InventorySortDirection direction,
             Model model
     ) {
         if (view == InventoryView.EQUIPMENT) {
-            List<Computer> computers = computerService.search(
-                    query,
-                    status,
-                    type,
-                    siteId
+            List<Computer> computers = InventoryOrdering.apply(
+                    computerService.search(query, status, type, siteId),
+                    COMPUTER_ALPHABETICAL_ORDER,
+                    COMPUTER_CHRONOLOGICAL_ORDER,
+                    sort,
+                    direction
             );
 
             List<Long> availableComputerIds = computers.stream()
@@ -93,9 +114,12 @@ public class ComputerController {
             model.addAttribute("peopleWithAssets", List.of());
             model.addAttribute("activeAssignmentsByPersonId", Map.of());
         } else {
-            List<Person> people = assignmentService.findPeopleWithActiveAssignments(
-                    query,
-                    siteId
+            List<Person> people = InventoryOrdering.apply(
+                    assignmentService.findPeopleWithActiveAssignments(query, siteId),
+                    PERSON_ALPHABETICAL_ORDER,
+                    PERSON_CHRONOLOGICAL_ORDER,
+                    sort,
+                    direction
             );
 
             model.addAttribute("computers", List.of());
@@ -115,6 +139,10 @@ public class ComputerController {
         model.addAttribute("selectedType", type);
         model.addAttribute("selectedSiteId", siteId);
         model.addAttribute("view", view);
+        model.addAttribute("selectedSort", sort);
+        model.addAttribute("selectedDirection", direction);
+        model.addAttribute("sortOptions", InventorySort.values());
+        model.addAttribute("directionOptions", InventorySortDirection.values());
         model.addAttribute("sites", siteService.findAllActive());
         model.addAttribute("computerStatuses", ComputerStatus.values());
         model.addAttribute("computerTypes", ComputerType.values());

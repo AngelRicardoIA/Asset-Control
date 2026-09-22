@@ -27,12 +27,12 @@
         <a
                 class="inventory-view-toggle__option"
                 th:classappend="${view == T(com.assetcontrol.shared.web.InventoryView).EQUIPMENT ? ' inventory-view-toggle__option--active' : ''}"
-                th:href="@{/computers(view='EQUIPMENT',query=${query},status=${selectedStatus},type=${selectedType},siteId=${selectedSiteId})}"
+                th:href="@{/computers(view='EQUIPMENT',query=${query},status=${selectedStatus},type=${selectedType},siteId=${selectedSiteId},sort=${selectedSort},direction=${selectedDirection})}"
         >Equipos</a>
         <a
                 class="inventory-view-toggle__option"
                 th:classappend="${view == T(com.assetcontrol.shared.web.InventoryView).PEOPLE ? ' inventory-view-toggle__option--active' : ''}"
-                th:href="@{/computers(view='PEOPLE',query=${query},siteId=${selectedSiteId})}"
+                th:href="@{/computers(view='PEOPLE',query=${query},siteId=${selectedSiteId},sort=${selectedSort},direction=${selectedDirection})}"
         >Personas</a>
     </nav>
 
@@ -40,6 +40,7 @@
         <input type="hidden" name="view" th:value="${view}">
 
         <input
+                class="filter-search"
                 type="search"
                 name="query"
                 th:value="${query}"
@@ -82,6 +83,24 @@
             ></option>
         </select>
 
+        <select name="sort" aria-label="Criterio de ordenamiento">
+            <option
+                    th:each="sortOption : ${sortOptions}"
+                    th:value="${sortOption}"
+                    th:selected="${sortOption == selectedSort}"
+                    th:text="${sortOption.label}"
+            ></option>
+        </select>
+
+        <select name="direction" aria-label="Dirección del ordenamiento">
+            <option
+                    th:each="directionOption : ${directionOptions}"
+                    th:value="${directionOption}"
+                    th:selected="${directionOption == selectedDirection}"
+                    th:text="${directionOption.label}"
+            ></option>
+        </select>
+
         <button class="secondary-button" type="submit">Filtrar</button>
     </form>
 
@@ -106,6 +125,10 @@
                     <small th:text="${'Asset: ' + computer.asset + ' · ' + computer.site.name}">
                         Asset · Ubicación
                     </small>
+                    <small
+                            th:if="${selectedSort == T(com.assetcontrol.shared.web.InventorySort).CHRONOLOGICAL}"
+                            th:text="${'Registrado: ' + #temporals.format(computer.createdAt, 'dd/MM/yyyy HH:mm')}"
+                    >Registrado</small>
 
                     <div
                             class="computer-users"
@@ -157,6 +180,10 @@
                     <small th:text="${person.email}">correo</small>
                     <small th:if="${person.jobTitle != null}" th:text="${person.jobTitle}">Puesto</small>
                     <small th:if="${person.department != null}" th:text="${person.department}">Área</small>
+                    <small
+                            th:if="${selectedSort == T(com.assetcontrol.shared.web.InventorySort).CHRONOLOGICAL}"
+                            th:text="${'Registrado: ' + #temporals.format(person.createdAt, 'dd/MM/yyyy HH:mm')}"
+                    >Registrado</small>
                     <small class="person-profile-link-label">Ver perfil completo</small>
                 </a>
 

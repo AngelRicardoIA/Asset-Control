@@ -55,11 +55,15 @@
 }
 
 .filter-panel--inventory {
-    grid-template-columns: minmax(0, 1fr) repeat(3, minmax(150px, 190px)) auto;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.filter-panel--inventory .filter-search {
+    grid-column: 1 / -1;
 }
 
 .filter-panel--people {
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) repeat(2, minmax(150px, 190px)) auto;
 }
 
 .inventory-view-toggle {

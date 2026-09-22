@@ -130,4 +130,12 @@ public class Phone {
     public String getObservations() {
         return observations;
     }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
 }

@@ -27,12 +27,12 @@
         <a
                 class="inventory-view-toggle__option"
                 th:classappend="${view == T(com.assetcontrol.shared.web.InventoryView).EQUIPMENT ? ' inventory-view-toggle__option--active' : ''}"
-                th:href="@{/phones(view='EQUIPMENT',query=${query},status=${selectedStatus},siteId=${selectedSiteId})}"
+                th:href="@{/phones(view='EQUIPMENT',query=${query},status=${selectedStatus},siteId=${selectedSiteId},sort=${selectedSort},direction=${selectedDirection})}"
         >Teléfonos</a>
         <a
                 class="inventory-view-toggle__option"
                 th:classappend="${view == T(com.assetcontrol.shared.web.InventoryView).PEOPLE ? ' inventory-view-toggle__option--active' : ''}"
-                th:href="@{/phones(view='PEOPLE',query=${query},siteId=${selectedSiteId})}"
+                th:href="@{/phones(view='PEOPLE',query=${query},siteId=${selectedSiteId},sort=${selectedSort},direction=${selectedDirection})}"
         >Personas</a>
     </nav>
 
@@ -40,6 +40,7 @@
         <input type="hidden" name="view" th:value="${view}">
 
         <input
+                class="filter-search"
                 type="search"
                 name="query"
                 th:value="${query}"
@@ -69,6 +70,24 @@
             ></option>
         </select>
 
+        <select name="sort" aria-label="Criterio de ordenamiento">
+            <option
+                    th:each="sortOption : ${sortOptions}"
+                    th:value="${sortOption}"
+                    th:selected="${sortOption == selectedSort}"
+                    th:text="${sortOption.label}"
+            ></option>
+        </select>
+
+        <select name="direction" aria-label="Dirección del ordenamiento">
+            <option
+                    th:each="directionOption : ${directionOptions}"
+                    th:value="${directionOption}"
+                    th:selected="${directionOption == selectedDirection}"
+                    th:text="${directionOption.label}"
+            ></option>
+        </select>
+
         <button class="secondary-button" type="submit">Filtrar</button>
     </form>
 
@@ -94,6 +113,10 @@
                     <strong th:text="${phone.phoneLine != null ? phone.phoneLine.number : phone.imei}">Teléfono</strong>
                     <span th:text="${phone.brand + ' ' + phone.model}">Marca Modelo</span>
                     <small th:text="${'IMEI: ' + phone.imei + ' · ' + phone.site.name}">IMEI · Ubicación</small>
+                    <small
+                            th:if="${selectedSort == T(com.assetcontrol.shared.web.InventorySort).CHRONOLOGICAL}"
+                            th:text="${'Registrado: ' + #temporals.format(phone.createdAt, 'dd/MM/yyyy HH:mm')}"
+                    >Registrado</small>
 
                     <div
                             class="phone-users"
@@ -144,6 +167,10 @@
                     <small th:text="${person.email}">correo</small>
                     <small th:if="${person.jobTitle != null}" th:text="${person.jobTitle}">Puesto</small>
                     <small th:if="${person.department != null}" th:text="${person.department}">Área</small>
+                    <small
+                            th:if="${selectedSort == T(com.assetcontrol.shared.web.InventorySort).CHRONOLOGICAL}"
+                            th:text="${'Registrado: ' + #temporals.format(person.createdAt, 'dd/MM/yyyy HH:mm')}"
+                    >Registrado</small>
                     <small class="person-profile-link-label">Ver perfil completo</small>
                 </a>
 
