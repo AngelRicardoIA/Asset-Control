@@ -12,21 +12,40 @@
             <p th:text="${computer.brand + ' ' + computer.model}">Marca Modelo</p>
         </div>
 
-        <div class="page-actions">
-            <a class="secondary-button" th:href="@{/computers}">Volver al inventario</a>
+        <nav class="action-toolbar" aria-label="Acciones del equipo">
             <a
-                    class="secondary-button"
+                    class="icon-action"
+                    th:href="@{/computers}"
+                    aria-label="Volver al inventario"
+                    data-tooltip="Volver al inventario"
+            >
+                <svg th:replace="~{fragments/icons :: arrowLeft}"></svg>
+            </a>
+            <a
+                    class="icon-action"
                     th:href="@{/computers/{id}/edit(id=${computer.id})}"
-            >Editar equipo</a>
+                    aria-label="Editar equipo"
+                    data-tooltip="Editar equipo"
+            >
+                <svg th:replace="~{fragments/icons :: pencil}"></svg>
+            </a>
             <a
-                    class="primary-button"
+                    class="icon-action"
                     th:href="@{/computers/{computerId}/maintenance/new(computerId=${computer.id})}"
-            >Registrar mantenimiento</a>
+                    aria-label="Registrar mantenimiento"
+                    data-tooltip="Registrar mantenimiento"
+            >
+                <svg th:replace="~{fragments/icons :: wrench}"></svg>
+            </a>
             <a
-                    class="primary-button"
+                    class="icon-action icon-action--primary"
                     th:href="@{/computers/{computerId}/assignments/new(computerId=${computer.id})}"
-            >Asignar equipo</a>
-        </div>
+                    aria-label="Asignar equipo"
+                    data-tooltip="Asignar equipo"
+            >
+                <svg th:replace="~{fragments/icons :: userPlus}"></svg>
+            </a>
+        </nav>
     </section>
 
     <p class="alert alert--success" th:if="${successMessage}" th:text="${successMessage}"></p>

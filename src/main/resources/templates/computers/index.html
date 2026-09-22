@@ -11,16 +11,41 @@
             <h1>Equipos de cómputo</h1>
             <p>Consulta, filtra y administra laptops y equipos de escritorio.</p>
         </div>
-        <div class="page-actions">
+        <nav class="action-toolbar" aria-label="Acciones del inventario">
             <a
-                    class="secondary-button"
+                    class="icon-action"
                     th:if="${view == T(com.assetcontrol.shared.web.InventoryView).PEOPLE}"
                     th:href="@{/people}"
-            >Administrar personas</a>
-            <a class="secondary-button" th:href="@{/inventory/export}">Exportar</a>
-            <a class="secondary-button" th:href="@{/assignment-imports/computers}">Importar</a>
-            <a class="primary-button" th:href="@{/computers/new}">Nuevo equipo</a>
-        </div>
+                    aria-label="Administrar personas"
+                    data-tooltip="Administrar personas"
+            >
+                <svg th:replace="~{fragments/icons :: users}"></svg>
+            </a>
+            <a
+                    class="icon-action"
+                    th:href="@{/inventory/export}"
+                    aria-label="Exportar inventario"
+                    data-tooltip="Exportar inventario"
+            >
+                <svg th:replace="~{fragments/icons :: download}"></svg>
+            </a>
+            <a
+                    class="icon-action"
+                    th:href="@{/assignment-imports/computers}"
+                    aria-label="Importar asignaciones"
+                    data-tooltip="Importar asignaciones"
+            >
+                <svg th:replace="~{fragments/icons :: upload}"></svg>
+            </a>
+            <a
+                    class="icon-action icon-action--primary"
+                    th:href="@{/computers/new}"
+                    aria-label="Registrar equipo"
+                    data-tooltip="Registrar equipo"
+            >
+                <svg th:replace="~{fragments/icons :: plus}"></svg>
+            </a>
+        </nav>
     </section>
 
     <nav class="inventory-view-toggle" aria-label="Vista del inventario">

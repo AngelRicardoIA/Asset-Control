@@ -450,6 +450,107 @@
     gap: 0.75rem;
 }
 
+.action-toolbar {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-end;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    padding: 0.55rem;
+    border-radius: 1rem;
+    box-shadow: var(--shadow-pressed);
+}
+
+.icon-action {
+    position: relative;
+    display: inline-grid;
+    width: 2.85rem;
+    height: 2.85rem;
+    flex: 0 0 2.85rem;
+    place-items: center;
+    border: 0;
+    border-radius: 0.85rem;
+    background: var(--surface);
+    box-shadow: var(--shadow-raised-small);
+    color: var(--text-primary);
+    cursor: pointer;
+    text-decoration: none;
+    transition: background-color 160ms ease, box-shadow 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.icon-action svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.9;
+}
+
+.icon-action:hover {
+    color: var(--accent);
+    transform: translateY(-2px);
+}
+
+.icon-action:active {
+    box-shadow: var(--shadow-pressed);
+    transform: translateY(0);
+}
+
+.icon-action:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+}
+
+.icon-action--primary {
+    background: var(--accent);
+    color: #ffffff;
+}
+
+.icon-action--primary:hover {
+    background: var(--color-accent-strong);
+    color: #ffffff;
+}
+
+.icon-action--info {
+    background: var(--color-action-blue);
+    color: #ffffff;
+}
+
+.icon-action--info:hover {
+    background: var(--color-action-blue-hover);
+    color: #ffffff;
+}
+
+.icon-action::after {
+    position: absolute;
+    top: calc(100% + 0.65rem);
+    right: 0;
+    z-index: 20;
+    padding: 0.45rem 0.65rem;
+    border-radius: 0.55rem;
+    background: var(--text-primary);
+    color: var(--surface);
+    content: attr(data-tooltip);
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-0.25rem);
+    transition: opacity 140ms ease, transform 140ms ease, visibility 140ms ease;
+    visibility: hidden;
+    white-space: nowrap;
+}
+
+.icon-action:hover::after,
+.icon-action:focus-visible::after {
+    opacity: 1;
+    transform: translateY(0);
+    visibility: visible;
+}
+
 .assignment-history {
     margin-bottom: 1.5rem;
 }
@@ -790,6 +891,10 @@
     .person-directory-item {
         align-items: stretch;
         flex-direction: column;
+    }
+
+    .action-toolbar {
+        align-self: flex-start;
     }
 
     .filter-panel,
