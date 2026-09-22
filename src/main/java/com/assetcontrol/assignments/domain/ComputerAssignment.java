@@ -48,6 +48,12 @@ public class ComputerAssignment {
     @Column(name = "returned_at")
     private LocalDate returnedAt;
 
+    @Column(name = "received_by", length = 150)
+    private String receivedBy;
+
+    @Column(name = "return_notes", length = 1000)
+    private String returnNotes;
+
     @Column(length = 1000)
     private String notes;
 
@@ -93,6 +99,14 @@ public class ComputerAssignment {
     }
 
     public void close(LocalDate returnedAt) {
+        close(returnedAt, null, null);
+    }
+
+    public void close(
+            LocalDate returnedAt,
+            String receivedBy,
+            String returnNotes
+    ) {
         if (!isActive()) {
             throw new IllegalStateException("La asignación ya está cerrada.");
         }
@@ -104,6 +118,8 @@ public class ComputerAssignment {
         }
 
         this.returnedAt = returnedAt;
+        this.receivedBy = receivedBy;
+        this.returnNotes = returnNotes;
     }
 
     public Long getId() {
@@ -136,5 +152,13 @@ public class ComputerAssignment {
 
     public String getNotes() {
         return notes;
+    }
+
+    public String getReceivedBy() {
+        return receivedBy;
+    }
+
+    public String getReturnNotes() {
+        return returnNotes;
     }
 }

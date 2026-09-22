@@ -153,23 +153,35 @@
         </div>
 
         <div class="assignment-list" th:unless="${#lists.isEmpty(profile.computerAssignmentHistory)}">
-            <a
+            <article
                     class="assignment-item person-history-item"
                     th:each="assignment : ${profile.computerAssignmentHistory}"
-                    th:href="@{/computers/{computerId}(computerId=${assignment.computer.id})}"
+                    th:classappend="${!assignment.active ? ' assignment-item--returned' : ''}"
             >
                 <div class="assignment-person">
-                    <strong th:text="${assignment.computer.host}">HOST-001</strong>
+                    <a
+                            class="assignment-asset-link"
+                            th:href="@{/computers/{computerId}(computerId=${assignment.computer.id})}"
+                    >
+                        <strong th:text="${assignment.computer.host}">HOST-001</strong>
+                    </a>
                     <span th:text="${assignment.computer.brand + ' ' + assignment.computer.model}">Marca Modelo</span>
                     <small th:text="${'Asset: ' + assignment.computer.asset + ' · ' + assignment.computer.site.name}">Asset · Ubicación</small>
                 </div>
 
                 <div class="assignment-status">
                     <span
+                            th:if="${assignment.active}"
                             class="status-badge"
                             th:classappend="${assignment.assignmentType == T(com.assetcontrol.assignments.domain.AssignmentType).LOAN ? ' status-loaned' : ' status-assigned'}"
                             th:text="${assignment.assignmentType == T(com.assetcontrol.assignments.domain.AssignmentType).LOAN ? 'Préstamo' : 'Asignación'}"
                     >Asignación</span>
+                    <button
+                            class="status-badge status-returned return-detail-trigger"
+                            type="button"
+                            th:unless="${assignment.active}"
+                            th:attr="data-return-details='true',data-return-asset=${assignment.computer.host + ' · Asset ' + assignment.computer.asset},data-return-person=${profile.person.username + ' · ' + profile.person.fullName},data-return-date=${#temporals.format(assignment.returnedAt, 'dd/MM/yyyy')},data-return-received-by=${assignment.receivedBy},data-return-notes=${assignment.returnNotes}"
+                    >Devuelto</button>
                     <small th:text="${'Desde: ' + #temporals.format(assignment.assignedAt, 'dd/MM/yyyy')}">Desde</small>
                     <small
                             th:if="${assignment.active}"
@@ -180,7 +192,7 @@
                             th:text="${'Devuelto: ' + #temporals.format(assignment.returnedAt, 'dd/MM/yyyy')}"
                     >Devuelto</small>
                 </div>
-            </a>
+            </article>
         </div>
     </section>
 
@@ -198,23 +210,35 @@
         </div>
 
         <div class="assignment-list" th:unless="${#lists.isEmpty(profile.phoneAssignmentHistory)}">
-            <a
+            <article
                     class="assignment-item person-history-item"
                     th:each="assignment : ${profile.phoneAssignmentHistory}"
-                    th:href="@{/phones/{phoneId}(phoneId=${assignment.phone.id})}"
+                    th:classappend="${assignment.returnedAt != null ? ' assignment-item--returned' : ''}"
             >
                 <div class="assignment-person">
-                    <strong th:text="${assignment.phone.phoneLine != null ? assignment.phone.phoneLine.number : assignment.phone.imei}">Teléfono</strong>
+                    <a
+                            class="assignment-asset-link"
+                            th:href="@{/phones/{phoneId}(phoneId=${assignment.phone.id})}"
+                    >
+                        <strong th:text="${assignment.phone.phoneLine != null ? assignment.phone.phoneLine.number : assignment.phone.imei}">Teléfono</strong>
+                    </a>
                     <span th:text="${assignment.phone.brand + ' ' + assignment.phone.model}">Marca Modelo</span>
                     <small th:text="${'IMEI: ' + assignment.phone.imei + ' · ' + assignment.phone.site.name}">IMEI · Ubicación</small>
                 </div>
 
                 <div class="assignment-status">
                     <span
+                            th:if="${assignment.returnedAt == null}"
                             class="status-badge"
                             th:classappend="${assignment.type == T(com.assetcontrol.phones.domain.PhoneAssignmentType).LOAN ? ' status-loaned' : ' status-assigned'}"
                             th:text="${assignment.type.label}"
                     >Asignación</span>
+                    <button
+                            class="status-badge status-returned return-detail-trigger"
+                            type="button"
+                            th:if="${assignment.returnedAt != null}"
+                            th:attr="data-return-details='true',data-return-asset=${(assignment.phone.phoneLine != null ? assignment.phone.phoneLine.number : assignment.phone.imei) + ' · IMEI ' + assignment.phone.imei},data-return-person=${profile.person.username + ' · ' + profile.person.fullName},data-return-date=${#temporals.format(assignment.returnedAt, 'dd/MM/yyyy')},data-return-received-by=${assignment.receivedBy},data-return-notes=${assignment.returnNotes}"
+                    >Devuelto</button>
                     <small th:text="${'Desde: ' + #temporals.format(assignment.assignedAt, 'dd/MM/yyyy')}">Desde</small>
                     <small
                             th:if="${assignment.returnedAt == null}"
@@ -225,9 +249,10 @@
                             th:text="${'Devuelto: ' + #temporals.format(assignment.returnedAt, 'dd/MM/yyyy')}"
                     >Devuelto</small>
                 </div>
-            </a>
+            </article>
         </div>
     </section>
 </main>
+<th:block th:replace="~{fragments/return-dialogs :: return-detail}"></th:block>
 </body>
 </html>

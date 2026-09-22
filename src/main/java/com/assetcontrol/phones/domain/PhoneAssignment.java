@@ -47,6 +47,12 @@ public class PhoneAssignment {
     @Column(name = "returned_at")
     private LocalDate returnedAt;
 
+    @Column(name = "received_by", length = 150)
+    private String receivedBy;
+
+    @Column(name = "return_notes", length = 1000)
+    private String returnNotes;
+
     @Column(length = 2000)
     private String observations;
 
@@ -78,7 +84,17 @@ public class PhoneAssignment {
     }
 
     public void returnOn(LocalDate returnedAt) {
+        returnOn(returnedAt, null, null);
+    }
+
+    public void returnOn(
+            LocalDate returnedAt,
+            String receivedBy,
+            String returnNotes
+    ) {
         this.returnedAt = returnedAt;
+        this.receivedBy = receivedBy;
+        this.returnNotes = returnNotes;
     }
 
     public Long getId() {
@@ -111,5 +127,13 @@ public class PhoneAssignment {
 
     public String getObservations() {
         return observations;
+    }
+
+    public String getReceivedBy() {
+        return receivedBy;
+    }
+
+    public String getReturnNotes() {
+        return returnNotes;
     }
 }

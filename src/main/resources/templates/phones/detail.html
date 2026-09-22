@@ -90,7 +90,12 @@
         </div>
 
         <div class="assignment-list" th:unless="${#lists.isEmpty(assignmentHistory)}">
-            <article class="assignment-item" th:each="assignment : ${assignmentHistory}">
+            <article
+                    class="assignment-item"
+                    th:each="assignment : ${assignmentHistory}"
+                    th:classappend="${assignment.returnedAt != null ? ' assignment-item--returned' : ''}"
+                    th:id="${'asignacion-' + assignment.id}"
+            >
                 <div class="assignment-person">
                     <strong th:text="${assignment.person.fullName}">Nombre completo</strong>
                     <span th:text="${assignment.person.username + ' · ' + assignment.person.fullName}">Usuario · Nombre</span>
@@ -99,10 +104,18 @@
 
                 <div class="assignment-status">
                     <span
+                            th:if="${assignment.returnedAt == null}"
                             class="status-badge"
                             th:classappend="${assignment.type == T(com.assetcontrol.phones.domain.PhoneAssignmentType).LOAN ? ' status-loaned' : ' status-assigned'}"
                             th:text="${assignment.type.label}"
                     >Asignación</span>
+
+                    <button
+                            class="status-badge status-returned return-detail-trigger"
+                            type="button"
+                            th:if="${assignment.returnedAt != null}"
+                            th:attr="data-return-details='true',data-return-asset=${(phone.phoneLine != null ? phone.phoneLine.number : phone.imei) + ' · IMEI ' + phone.imei},data-return-person=${assignment.person.username + ' · ' + assignment.person.fullName},data-return-date=${#temporals.format(assignment.returnedAt, 'dd/MM/yyyy')},data-return-received-by=${assignment.receivedBy},data-return-notes=${assignment.returnNotes}"
+                    >Devuelto</button>
 
                     <small
                             class="assignment-expired"
@@ -121,13 +134,12 @@
                     >Devuelto</small>
 
                     <div class="assignment-actions" th:if="${assignment.returnedAt == null}">
-                        <form
-                                th:action="@{/phone-assignments/{assignmentId}/return(assignmentId=${assignment.id})}"
-                                th:attr="data-confirm-return=${'¿Confirmas la devolución de ' + (phone.phoneLine != null ? phone.phoneLine.number : phone.imei) + ' por parte de ' + assignment.person.username + '?'}"
-                                method="post"
-                        >
-                            <button class="primary-button" type="submit">Devolver</button>
-                        </form>
+                        <button
+                                class="primary-button"
+                                type="button"
+                                data-return-open
+                                th:attr="data-return-action=@{/phones/{phoneId}/assignments/{assignmentId}/return(phoneId=${phone.id}, assignmentId=${assignment.id})},data-return-asset=${(phone.phoneLine != null ? phone.phoneLine.number : phone.imei) + ' · IMEI ' + phone.imei},data-return-person=${assignment.person.username + ' · ' + assignment.person.fullName}"
+                        >Devolver</button>
                     </div>
                 </div>
             </article>
@@ -165,5 +177,7 @@
         <p th:text="${phone.observations ?: 'Sin observaciones registradas.'}">Sin observaciones registradas.</p>
     </section>
 </main>
+<th:block th:replace="~{fragments/return-dialogs :: return-form}"></th:block>
+<th:block th:replace="~{fragments/return-dialogs :: return-detail}"></th:block>
 </body>
 </html>

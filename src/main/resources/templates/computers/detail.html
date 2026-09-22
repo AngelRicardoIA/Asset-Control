@@ -29,6 +29,9 @@
         </div>
     </section>
 
+    <p class="alert alert--success" th:if="${successMessage}" th:text="${successMessage}"></p>
+    <p class="alert alert--error" th:if="${errorMessage}" th:text="${errorMessage}"></p>
+
     <section class="detail-grid">
         <article class="detail-card">
             <span>Estado</span>
@@ -99,6 +102,7 @@
 
         <div class="assignment-list" th:unless="${#lists.isEmpty(assignments)}">
             <article class="assignment-item" th:each="assignment : ${assignments}"
+                     th:classappend="${!assignment.active ? ' assignment-item--returned' : ''}"
                      th:id="${'asignacion-' + assignment.id}">
                 <div class="assignment-person">
                     <strong th:text="${assignment.person.fullName}">Nombre completo</strong>
@@ -108,10 +112,18 @@
 
                 <div class="assignment-status">
                 <span
+                        th:if="${assignment.active}"
                         class="status-badge"
                         th:classappend="${assignment.assignmentType == T(com.assetcontrol.assignments.domain.AssignmentType).LOAN ? ' status-loaned' : ' status-assigned'}"
                         th:text="${assignment.assignmentType == T(com.assetcontrol.assignments.domain.AssignmentType).LOAN ? 'Préstamo' : 'Asignación'}"
                 >Asignación</span>
+
+                    <button
+                            class="status-badge status-returned return-detail-trigger"
+                            type="button"
+                            th:unless="${assignment.active}"
+                            th:attr="data-return-details='true',data-return-asset=${computer.host + ' · Asset ' + computer.asset},data-return-person=${assignment.person.username + ' · ' + assignment.person.fullName},data-return-date=${#temporals.format(assignment.returnedAt, 'dd/MM/yyyy')},data-return-received-by=${assignment.receivedBy},data-return-notes=${assignment.returnNotes}"
+                    >Devuelto</button>
 
                     <small
                             class="assignment-expired"
@@ -142,13 +154,12 @@
                             Etiqueta
                         </button>
 
-                        <form
-                                th:action="@{/computers/{computerId}/assignments/{assignmentId}/close(computerId=${computer.id}, assignmentId=${assignment.id})}"
-                                th:attr="data-confirm-return=${'¿Confirmas la devolución de ' + computer.host + ' por parte de ' + assignment.person.username + '?'}"
-                                method="post"
-                        >
-                            <button class="primary-button" type="submit">Devolver</button>
-                        </form>
+                        <button
+                                class="primary-button"
+                                type="button"
+                                data-return-open
+                                th:attr="data-return-action=@{/computers/{computerId}/assignments/{assignmentId}/close(computerId=${computer.id}, assignmentId=${assignment.id})},data-return-asset=${computer.host + ' · Asset ' + computer.asset},data-return-person=${assignment.person.username + ' · ' + assignment.person.fullName}"
+                        >Devolver</button>
                     </div>
 
                 </div>
@@ -190,5 +201,7 @@
     </section>
 </main>
 <th:block th:replace="~{fragments/assignment-label-dialog :: dialog}"></th:block>
+<th:block th:replace="~{fragments/return-dialogs :: return-form}"></th:block>
+<th:block th:replace="~{fragments/return-dialogs :: return-detail}"></th:block>
 </body>
 </html>

@@ -2,11 +2,11 @@ package com.assetcontrol.phones.web;
 
 import com.assetcontrol.phones.application.PhoneAssignmentService;
 import com.assetcontrol.phones.application.PhoneService;
+import com.assetcontrol.phones.application.ReturnPhoneAssignmentCommand;
 import com.assetcontrol.phones.domain.PhoneAssignmentType;
 import com.assetcontrol.people.application.DuplicatePersonIdentifierException;
 import com.assetcontrol.people.application.DuplicatePersonUsernameException;
 import jakarta.validation.Valid;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -14,10 +14,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import com.assetcontrol.shared.web.AssetReturnForm;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-
-import java.time.LocalDate;
 
 @Controller
 public class PhoneAssignmentController {
@@ -100,18 +98,22 @@ public class PhoneAssignmentController {
         return "redirect:/phones/" + phoneId;
     }
 
-    @PostMapping("/phone-assignments/{assignmentId}/return")
+    @PostMapping("/phones/{phoneId}/assignments/{assignmentId}/return")
     public String returnPhone(
+            @PathVariable Long phoneId,
             @PathVariable Long assignmentId,
-            @RequestParam(required = false)
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-            LocalDate returnedAt,
+            @ModelAttribute AssetReturnForm returnForm,
             RedirectAttributes redirectAttributes
     ) {
         try {
             var assignment = phoneAssignmentService.returnAssignment(
+                    phoneId,
                     assignmentId,
-                    returnedAt
+                    new ReturnPhoneAssignmentCommand(
+                            returnForm.getReturnedAt(),
+                            returnForm.getReceivedBy(),
+                            returnForm.getReturnNotes()
+                    )
             );
             redirectAttributes.addFlashAttribute(
                     "successMessage",
@@ -125,7 +127,7 @@ public class PhoneAssignmentController {
             );
         }
 
-        return "redirect:/phones";
+        return "redirect:/phones/" + phoneId + "#asignacion-" + assignmentId;
     }
 
     private void addFormOptions(Model model) {

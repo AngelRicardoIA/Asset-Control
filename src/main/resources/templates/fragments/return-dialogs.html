@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="https://www.thymeleaf.org">
+<body>
+<dialog class="return-dialog" id="asset-return-dialog" th:fragment="return-form">
+    <form class="return-dialog__content" method="post" data-return-form>
+        <div class="return-dialog__heading">
+            <div>
+                <p class="eyebrow">Devolución</p>
+                <h2>Registrar devolución</h2>
+            </div>
+            <button class="return-dialog__close" type="button" data-return-close aria-label="Cerrar">×</button>
+        </div>
+
+        <div class="return-dialog__summary">
+            <div>
+                <span>Activo</span>
+                <strong data-return-asset>Activo</strong>
+            </div>
+            <div>
+                <span>Usuario</span>
+                <strong data-return-person>Usuario</strong>
+            </div>
+        </div>
+
+        <div class="return-dialog__fields">
+            <div class="form-field">
+                <label for="return-date">Fecha de devolución</label>
+                <input id="return-date" type="date" name="returnedAt" required data-return-date>
+            </div>
+
+            <div class="form-field">
+                <label for="return-received-by">Quién recibe</label>
+                <input id="return-received-by" type="text" name="receivedBy" maxlength="150" required autocomplete="name">
+            </div>
+
+            <div class="form-field full-width">
+                <label for="return-notes">Comentarios</label>
+                <textarea id="return-notes" name="returnNotes" maxlength="1000" placeholder="Condición del activo, detalles o incidencias"></textarea>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button class="secondary-button" type="button" data-return-close>Cancelar</button>
+            <button class="primary-button" type="submit">Confirmar devolución</button>
+        </div>
+    </form>
+</dialog>
+
+<dialog class="return-dialog" id="return-detail-dialog" th:fragment="return-detail">
+    <div class="return-dialog__content">
+        <div class="return-dialog__heading">
+            <div>
+                <p class="eyebrow">Movimiento cerrado</p>
+                <h2>Detalle de devolución</h2>
+            </div>
+            <button class="return-dialog__close" type="button" data-return-detail-close aria-label="Cerrar">×</button>
+        </div>
+
+        <div class="return-detail-grid">
+            <div>
+                <span>Activo</span>
+                <strong data-return-detail-asset>Activo</strong>
+            </div>
+            <div>
+                <span>Usuario</span>
+                <strong data-return-detail-person>Usuario</strong>
+            </div>
+            <div>
+                <span>Fecha de devolución</span>
+                <strong data-return-detail-date>Fecha</strong>
+            </div>
+            <div>
+                <span>Recibido por</span>
+                <strong data-return-detail-received-by>Persona</strong>
+            </div>
+            <div class="full-width">
+                <span>Comentarios</span>
+                <p data-return-detail-notes>Sin comentarios.</p>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button class="secondary-button" type="button" data-return-detail-close>Cerrar</button>
+        </div>
+    </div>
+</dialog>
+</body>
+</html>

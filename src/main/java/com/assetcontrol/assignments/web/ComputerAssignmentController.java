@@ -6,6 +6,7 @@ import com.assetcontrol.assignments.domain.AssignmentType;
 import com.assetcontrol.computers.application.ComputerService;
 import com.assetcontrol.people.application.DuplicatePersonIdentifierException;
 import com.assetcontrol.people.application.PersonService;
+import com.assetcontrol.shared.web.AssetReturnForm;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -16,6 +17,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import com.assetcontrol.people.application.DuplicatePersonUsernameException;
+import com.assetcontrol.assignments.application.CloseComputerAssignmentCommand;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
 @RequestMapping("/computers/{computerId}/assignments")
@@ -157,9 +160,31 @@ public class ComputerAssignmentController {
     @PostMapping("/{assignmentId}/close")
     public String closeAssignment(
             @PathVariable Long computerId,
-            @PathVariable Long assignmentId
+            @PathVariable Long assignmentId,
+            @ModelAttribute AssetReturnForm returnForm,
+            RedirectAttributes redirectAttributes
     ) {
-        assignmentService.close(computerId, assignmentId);
-        return "redirect:/computers/" + computerId;
+        try {
+            assignmentService.close(
+                    computerId,
+                    assignmentId,
+                    new CloseComputerAssignmentCommand(
+                            returnForm.getReturnedAt(),
+                            returnForm.getReceivedBy(),
+                            returnForm.getReturnNotes()
+                    )
+            );
+            redirectAttributes.addFlashAttribute(
+                    "successMessage",
+                    "Devolución registrada correctamente."
+            );
+        } catch (IllegalArgumentException | IllegalStateException exception) {
+            redirectAttributes.addFlashAttribute(
+                    "errorMessage",
+                    exception.getMessage()
+            );
+        }
+
+        return "redirect:/computers/" + computerId + "#asignacion-" + assignmentId;
     }
 }

@@ -174,7 +174,11 @@ public class ComputerAssignmentService {
     }
 
     @Transactional
-    public void close(Long computerId, Long assignmentId) {
+    public void close(
+            Long computerId,
+            Long assignmentId,
+            CloseComputerAssignmentCommand command
+    ) {
         ComputerAssignment assignment = assignmentRepository.findDetailedById(assignmentId)
                 .orElseThrow(() -> new AssignmentNotFoundException(assignmentId));
 
@@ -184,9 +188,27 @@ public class ComputerAssignmentService {
             );
         }
 
-        assignment.close(LocalDate.now());
+        LocalDate returnedAt = command.returnedAt() == null
+                ? LocalDate.now()
+                : command.returnedAt();
+
+        assignment.close(
+                returnedAt,
+                normalizeRequired(command.receivedBy(), "quién recibe"),
+                normalizeOptional(command.returnNotes())
+        );
 
         synchronizeComputerStatus(assignment.getComputer());
+    }
+
+    private String normalizeRequired(String value, String field) {
+        String normalized = normalizeOptional(value);
+
+        if (normalized == null) {
+            throw new IllegalArgumentException("Indica " + field + " el equipo.");
+        }
+
+        return normalized;
     }
 
     public Map<Long, List<ComputerAssignment>> findActiveByComputerIds(

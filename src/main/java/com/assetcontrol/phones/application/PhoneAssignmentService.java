@@ -206,14 +206,21 @@ public class PhoneAssignmentService {
     }
 
     public PhoneAssignment returnAssignment(
+            Long phoneId,
             Long assignmentId,
-            LocalDate returnedAt
+            ReturnPhoneAssignmentCommand command
     ) {
         PhoneAssignment assignment = phoneAssignmentRepository
                 .findByIdWithPhoneAndPerson(assignmentId)
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "La asignación seleccionada no existe."
+                    "La asignación seleccionada no existe."
                 ));
+
+        if (!assignment.getPhone().getId().equals(phoneId)) {
+            throw new IllegalArgumentException(
+                    "La asignación no pertenece al teléfono indicado."
+            );
+        }
 
         if (assignment.getReturnedAt() != null) {
             throw new IllegalArgumentException(
@@ -221,7 +228,9 @@ public class PhoneAssignmentService {
             );
         }
 
-        LocalDate returnDate = returnedAt == null ? LocalDate.now() : returnedAt;
+        LocalDate returnDate = command.returnedAt() == null
+                ? LocalDate.now()
+                : command.returnedAt();
 
         if (returnDate.isBefore(assignment.getAssignedAt())) {
             throw new IllegalArgumentException(
@@ -229,10 +238,24 @@ public class PhoneAssignmentService {
             );
         }
 
-        assignment.returnOn(returnDate);
+        assignment.returnOn(
+                returnDate,
+                normalizeRequired(command.receivedBy(), "quién recibe"),
+                normalizeOptional(command.returnNotes())
+        );
         synchronizePhoneStatus(assignment.getPhone());
 
         return assignment;
+    }
+
+    private String normalizeRequired(String value, String field) {
+        String normalized = normalizeOptional(value);
+
+        if (normalized == null) {
+            throw new IllegalArgumentException("Indica " + field + " el teléfono.");
+        }
+
+        return normalized;
     }
 
     private Person resolvePerson(CreatePhoneAssignmentCommand command) {

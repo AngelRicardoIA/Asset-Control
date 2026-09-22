@@ -76,7 +76,7 @@ public class InventoryExportService {
                 new SheetDefinition(
                         "Historial equipos",
                         """
-                                SELECT s.name AS 'Ubicación', c.host AS 'HOST', c.asset AS 'Asset', c.brand AS 'Marca', c.model AS 'Modelo', c.serial_number AS 'No. serie', p.external_id AS 'No. empleado', p.full_name AS 'Nombre completo', p.username AS 'Usuario', p.email AS 'Correo', p.job_title AS 'Puesto', p.department AS 'Área o departamento', p.manager_name AS 'Gerente', ca.assignment_type AS 'Tipo asignación', ca.assigned_at AS 'Fecha asignación', ca.due_date AS 'Vencimiento', ca.returned_at AS 'Fecha devolución', ca.notes AS 'Observaciones'
+                                SELECT s.name AS 'Ubicación', c.host AS 'HOST', c.asset AS 'Asset', c.brand AS 'Marca', c.model AS 'Modelo', c.serial_number AS 'No. serie', p.external_id AS 'No. empleado', p.full_name AS 'Nombre completo', p.username AS 'Usuario', p.email AS 'Correo', p.job_title AS 'Puesto', p.department AS 'Área o departamento', p.manager_name AS 'Gerente', ca.assignment_type AS 'Tipo asignación', ca.assigned_at AS 'Fecha asignación', ca.due_date AS 'Vencimiento', ca.returned_at AS 'Fecha devolución', ca.received_by AS 'Recibido por', ca.return_notes AS 'Comentarios devolución', ca.notes AS 'Observaciones'
                                 FROM computer_assignments ca
                                 JOIN computers c ON c.id = ca.computer_id
                                 JOIN sites s ON s.id = c.site_id
@@ -101,7 +101,7 @@ public class InventoryExportService {
                 new SheetDefinition(
                         "Historial teléfonos",
                         """
-                                SELECT ph.imei AS 'IMEI', ph.brand AS 'Marca', ph.model AS 'Modelo', pl.number AS 'Línea', p.external_id AS 'No. empleado', p.full_name AS 'Nombre completo', p.username AS 'Usuario', p.email AS 'Correo', p.job_title AS 'Puesto', p.department AS 'Área o departamento', p.manager_name AS 'Gerente', pa.assignment_type AS 'Tipo asignación', pa.assigned_at AS 'Fecha asignación', pa.due_at AS 'Vencimiento', pa.returned_at AS 'Fecha devolución', pa.observations AS 'Observaciones'
+                                SELECT ph.imei AS 'IMEI', ph.brand AS 'Marca', ph.model AS 'Modelo', pl.number AS 'Línea', p.external_id AS 'No. empleado', p.full_name AS 'Nombre completo', p.username AS 'Usuario', p.email AS 'Correo', p.job_title AS 'Puesto', p.department AS 'Área o departamento', p.manager_name AS 'Gerente', pa.assignment_type AS 'Tipo asignación', pa.assigned_at AS 'Fecha asignación', pa.due_at AS 'Vencimiento', pa.returned_at AS 'Fecha devolución', pa.received_by AS 'Recibido por', pa.return_notes AS 'Comentarios devolución', pa.observations AS 'Observaciones'
                                 FROM phone_assignments pa
                                 JOIN phones ph ON ph.id = pa.phone_id
                                 LEFT JOIN phone_lines pl ON pl.id = ph.phone_line_id
@@ -268,7 +268,8 @@ public class InventoryExportService {
                         "Ubicación", "HOST", "Asset", "Marca", "Modelo", "No. serie",
                         "No. empleado", "Nombre completo", "Usuario", "Correo", "Puesto",
                         "Área o departamento", "Gerente", "Tipo asignación",
-                        "Fecha asignación", "Vencimiento", "Fecha devolución", "Observaciones"
+                        "Fecha asignación", "Vencimiento", "Fecha devolución", "Recibido por",
+                        "Comentarios devolución", "Observaciones"
                 );
                 case "Teléfonos" -> List.of(
                         "Ubicación", "IMEI", "Marca", "Modelo", "Línea", "Operador",
@@ -281,7 +282,8 @@ public class InventoryExportService {
                         "IMEI", "Marca", "Modelo", "Línea", "No. empleado",
                         "Nombre completo", "Usuario", "Correo", "Puesto",
                         "Área o departamento", "Gerente", "Tipo asignación",
-                        "Fecha asignación", "Vencimiento", "Fecha devolución", "Observaciones"
+                        "Fecha asignación", "Vencimiento", "Fecha devolución", "Recibido por",
+                        "Comentarios devolución", "Observaciones"
                 );
                 case "Mantenimientos equipos" -> List.of(
                         "HOST", "Asset", "Marca", "Modelo", "Tipo", "Fecha",

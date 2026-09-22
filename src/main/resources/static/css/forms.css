@@ -324,6 +324,11 @@
     color: #943838;
 }
 
+.status-returned {
+    background: rgba(92, 98, 111, 0.16);
+    color: var(--text-muted);
+}
+
 .empty-state {
     padding: 2rem;
     text-align: center;
@@ -438,6 +443,29 @@
     border-radius: 1rem;
     box-shadow: var(--shadow-pressed);
     padding: 1rem;
+}
+
+.assignment-item--returned {
+    cursor: default;
+}
+
+.return-detail-trigger {
+    border: 0;
+    cursor: pointer;
+    font: inherit;
+}
+
+.return-detail-trigger:hover {
+    box-shadow: var(--shadow-raised-small);
+}
+
+.assignment-asset-link {
+    color: inherit;
+    text-decoration: none;
+}
+
+.assignment-asset-link:hover {
+    color: var(--accent);
 }
 
 .assignment-person,
@@ -609,6 +637,92 @@
     min-height: 2.25rem;
 }
 
+.return-dialog {
+    width: min(620px, calc(100% - 2rem));
+    max-height: calc(100vh - 2rem);
+    border: 0;
+    border-radius: 1.3rem;
+    background: var(--surface);
+    box-shadow: var(--shadow-raised);
+    color: var(--text-primary);
+    padding: 0;
+}
+
+.return-dialog::backdrop {
+    background: rgba(8, 10, 15, 0.58);
+    backdrop-filter: blur(3px);
+}
+
+.return-dialog__content {
+    padding: 1.5rem;
+}
+
+.return-dialog__heading {
+    align-items: start;
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+}
+
+.return-dialog__heading h2,
+.return-dialog__heading p {
+    margin: 0;
+}
+
+.return-dialog__heading .eyebrow {
+    margin-bottom: 0.35rem;
+}
+
+.return-dialog__close {
+    display: grid;
+    width: 2.5rem;
+    height: 2.5rem;
+    flex: 0 0 auto;
+    place-items: center;
+    border: 0;
+    border-radius: 0.8rem;
+    background: var(--surface);
+    box-shadow: var(--shadow-raised-small);
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 1.4rem;
+}
+
+.return-dialog__summary,
+.return-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.8rem;
+    margin-bottom: 1.25rem;
+}
+
+.return-dialog__summary > div,
+.return-detail-grid > div {
+    display: grid;
+    gap: 0.3rem;
+    border-radius: 0.9rem;
+    box-shadow: var(--shadow-pressed);
+    padding: 0.9rem;
+}
+
+.return-dialog__summary span,
+.return-detail-grid span {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+.return-detail-grid p {
+    margin: 0;
+    white-space: pre-wrap;
+}
+
+.return-dialog__fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
 .alert {
     padding: 1rem;
     border-radius: 0.8rem;
@@ -642,7 +756,10 @@
 
     .filter-panel,
     .field-grid,
-    .detail-grid {
+    .detail-grid,
+    .return-dialog__summary,
+    .return-detail-grid,
+    .return-dialog__fields {
         grid-template-columns: 1fr;
     }
 
