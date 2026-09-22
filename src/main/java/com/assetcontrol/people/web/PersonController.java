@@ -1,5 +1,6 @@
 package com.assetcontrol.people.web;
 
+import com.assetcontrol.accessories.application.AccessoryService;
 import com.assetcontrol.people.application.DuplicatePersonIdentifierException;
 import com.assetcontrol.people.application.DuplicatePersonUsernameException;
 import com.assetcontrol.people.application.PersonProfileService;
@@ -28,13 +29,16 @@ public class PersonController {
 
     private final PersonProfileService personProfileService;
     private final PersonService personService;
+    private final AccessoryService accessoryService;
 
     public PersonController(
             PersonProfileService personProfileService,
-            PersonService personService
+            PersonService personService,
+            AccessoryService accessoryService
     ) {
         this.personProfileService = personProfileService;
         this.personService = personService;
+        this.accessoryService = accessoryService;
     }
 
     @GetMapping
@@ -107,6 +111,9 @@ public class PersonController {
     @GetMapping("/{personId}")
     public String showPersonProfile(@PathVariable Long personId, Model model) {
         model.addAttribute("profile", personProfileService.findByPersonId(personId));
+        var accessoryHistory = accessoryService.historyForPerson(personId);
+        model.addAttribute("accessoryHistory", accessoryHistory);
+        model.addAttribute("activeAccessories", accessoryHistory.stream().filter(item -> item.isActive()).toList());
 
         return "people/detail";
     }

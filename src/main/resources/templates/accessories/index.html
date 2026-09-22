@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/document-head :: head('Accesorios')}"></head>
+<body><header th:replace="~{fragments/app-header :: header}"></header>
+<main class="page-content">
+    <section class="page-heading"><div><p class="eyebrow">Inventario</p><h1>Accesorios</h1><p>Control de monitores, teclados, mouse, diademas y otros.</p></div></section>
+    <div class="inventory-navigation">
+        <nav class="inventory-view-toggle" aria-label="Vista de accesorios">
+            <a class="inventory-view-toggle__option" th:classappend="${view == 'STOCK' ? ' inventory-view-toggle__option--active' : ''}" th:href="@{/accessories(view='STOCK',query=${query},type=${type})}">Stock <span th:text="${inventory.stockCount()}">0</span></a>
+            <a class="inventory-view-toggle__option" th:classappend="${view == 'ASSIGNED' ? ' inventory-view-toggle__option--active' : ''}" th:href="@{/accessories(view='ASSIGNED',query=${query},type=${type})}">Asignados <span th:text="${inventory.assignedCount()}">0</span></a>
+        </nav>
+        <a class="primary-button" th:href="@{/accessories/new}">Nuevo accesorio</a>
+    </div>
+    <p class="alert alert--success" th:if="${successMessage}" th:text="${successMessage}"></p>
+    <section class="form-panel accessories-stock" th:if="${view == 'STOCK'}" aria-label="Resumen de stock">
+        <h2>En stock por tipo y marca</h2>
+        <p class="field-help" th:if="${#lists.isEmpty(inventory.stock())}">Aún no hay accesorios en stock.</p>
+        <div class="accessories-stock__grid" th:unless="${#lists.isEmpty(inventory.stock())}">
+            <a th:each="group : ${inventory.stock()}" th:href="@{/accessories(view='STOCK',type=${group.type()})}"><strong th:text="${group.type().pluralLabel + ' ×' + group.quantity()}">Mouse ×12</strong><span th:text="${group.brand()}">Marca</span></a>
+        </div>
+    </section>
+    <form class="filter-panel accessories-filter" th:action="@{/accessories}" method="get">
+        <input name="view" type="hidden" th:value="${view}">
+        <input name="query" type="search" aria-label="Buscar accesorios" placeholder="Tipo, marca, modelo, serie, asset o persona" th:value="${query}">
+        <select name="type" aria-label="Tipo de accesorio"><option value="">Todos los tipos</option><option th:each="option : ${types}" th:value="${option}" th:text="${option.label}" th:selected="${option == type}"></option></select>
+        <button class="primary-button" type="submit">Filtrar</button>
+    </form>
+    <section class="inventory-panel"><p class="inventory-count" th:text="${inventory.items().size() + (inventory.items().size() == 1 ? ' accesorio encontrado' : ' accesorios encontrados')}">0 accesorios</p>
+        <div class="empty-state" th:if="${#lists.isEmpty(items)}"><h2>Sin resultados</h2><p>Registra accesorios o ajusta los filtros.</p></div>
+        <div class="computer-list" th:unless="${#lists.isEmpty(items)}">
+            <a class="computer-item" th:each="item : ${items}" th:href="@{/accessories/{id}(id=${item.accessory().id})}">
+                <div class="computer-main-data"><strong th:text="${item.accessory().type.label + ' · ' + item.accessory().brand + ' ' + item.accessory().model}">Monitor · Marca Modelo</strong>
+                    <small th:text="${'Serie: ' + (item.accessory().serialNumber ?: 'Sin registrar') + ' · Asset: ' + (item.accessory().asset ?: 'No aplica')}">Serie · Asset</small>
+                    <span th:if="${item.assigned()}" th:text="${'Usuario: ' + item.assignment().person.username + ' · ' + item.assignment().person.fullName}">Usuario</span>
+                </div><span class="status-badge" th:classappend="${item.assigned() ? ' status-assigned' : ' status-available'}" th:text="${item.assigned() ? 'Asignado' : 'Stock'}">Stock</span>
+            </a>
+        </div>
+        <nav class="maintenance-pagination" aria-label="Páginas" th:if="${totalPages > 1}">
+            <a th:if="${page > 1}" th:href="@{/accessories(view=${view},query=${query},type=${type},page=${page - 1})}">Anterior</a>
+            <a th:each="number : ${pages}" th:href="@{/accessories(view=${view},query=${query},type=${type},page=${number})}" th:text="${number}" th:classappend="${number == page ? ' maintenance-pagination--current' : ''}" th:attr="aria-current=${number == page ? 'page' : null}">1</a>
+            <a th:if="${page < totalPages}" th:href="@{/accessories(view=${view},query=${query},type=${type},page=${page + 1})}">Siguiente</a>
+        </nav>
+    </section>
+</main></body></html>

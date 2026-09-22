@@ -61,7 +61,7 @@
         <div class="section-heading">
             <div>
                 <h2>Activos asignados</h2>
-                <p>Equipos y teléfonos que actualmente están bajo su resguardo.</p>
+                <p>Equipos, teléfonos y accesorios que actualmente están bajo su resguardo.</p>
             </div>
         </div>
 
@@ -140,6 +140,16 @@
                                     th:text="${'Vence: ' + #temporals.format(assignment.dueAt, 'dd/MM/yyyy')}"
                             >Vence</small>
                         </div>
+                    </a>
+                </div>
+            </section>
+            <section class="person-profile-group">
+                <h3>Accesorios</h3>
+                <div class="empty-state person-empty-state" th:if="${#lists.isEmpty(activeAccessories)}"><p>No tiene accesorios activos.</p></div>
+                <div class="person-profile-asset-list" th:unless="${#lists.isEmpty(activeAccessories)}">
+                    <a class="person-profile-asset" th:each="assignment : ${activeAccessories}" th:href="@{/accessories/{id}(id=${assignment.accessory.id})}">
+                        <div class="person-profile-asset__main"><strong th:text="${assignment.accessory.type.label}">Monitor</strong><span th:text="${assignment.accessory.brand + ' ' + assignment.accessory.model}">Marca Modelo</span><small th:text="${'Serie: ' + (assignment.accessory.serialNumber ?: 'Sin registrar')}">Serie</small></div>
+                        <span class="status-badge status-assigned">Asignado</span>
                     </a>
                 </div>
             </section>
@@ -258,6 +268,13 @@
                 </div>
             </article>
         </div>
+    </section>
+    <section class="form-panel assignment-history">
+        <div class="section-heading"><div><h2>Historial de accesorios</h2><p>Unidades entregadas o devueltas a esta persona.</p></div></div>
+        <p class="empty-state" th:if="${#lists.isEmpty(accessoryHistory)}">Sin movimientos de accesorios.</p>
+        <div class="assignment-list" th:unless="${#lists.isEmpty(accessoryHistory)}"><article class="assignment-item" th:each="assignment : ${accessoryHistory}">
+            <div class="assignment-person"><a class="assignment-asset-link" th:href="@{/accessories/{id}(id=${assignment.accessory.id})}" th:text="${assignment.accessory.type.label + ' · ' + assignment.accessory.brand + ' ' + assignment.accessory.model}">Accesorio</a><small th:text="${'Asignado: ' + #temporals.format(assignment.assignedAt, 'dd/MM/yyyy')}">Fecha</small><small th:if="${assignment.returnedAt != null}" th:text="${'Devuelto: ' + #temporals.format(assignment.returnedAt, 'dd/MM/yyyy') + ' · Recibido por: ' + assignment.receivedBy}">Devolución</small><small th:if="${assignment.returnNotes != null}" th:text="${assignment.returnNotes}">Comentarios</small></div><span class="status-badge" th:classappend="${assignment.active ? ' status-assigned' : ' status-returned'}" th:text="${assignment.active ? 'Asignado' : 'Devuelto'}">Estado</span>
+        </article></div>
     </section>
 </main>
 <th:block th:replace="~{fragments/return-dialogs :: return-detail}"></th:block>

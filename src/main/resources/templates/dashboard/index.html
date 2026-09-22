@@ -29,16 +29,17 @@
                 <div class="asset-card__content"><h3>Teléfonos</h3><p>Dispositivos, IMEI y líneas telefónicas.</p></div>
                 <span class="asset-card__action">Abrir inventario</span>
             </a>
-            <article class="asset-card asset-card--pending">
+            <a class="asset-card" th:href="@{/accessories}">
                 <div class="asset-card__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="14" height="16" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/></svg></div>
-                <div class="asset-card__content"><h3>Accesorios</h3><p>Monitores, cargadores y periféricos.</p></div>
-                <span class="asset-card__action">Próximamente</span>
-            </article>
+                <div class="asset-card__content"><h3>Accesorios</h3><p>Monitores, teclados, mouse, diademas y otros.</p></div>
+                <span class="asset-card__action">Abrir inventario</span>
+            </a>
         </div>
         <div class="dashboard__shortcuts">
             <a th:href="@{/computers/new}">Nueva computadora</a>
             <a th:href="@{/phones/new}">Nuevo teléfono</a>
             <a th:href="@{/people}">Administrar personas</a>
+            <a th:href="@{/maintenance}">Ver mantenimientos</a>
             <a th:href="@{/inventory/export}">Exportar inventario</a>
         </div>
     </section>
@@ -53,6 +54,10 @@
             <span>Teléfonos</span>
             <strong th:text="${overview.phones().total()}">0</strong>
             <small th:text="${overview.phones().assigned() + overview.phones().loaned() + ' en uso'}">0 en uso</small>
+        </a>
+        <a class="dashboard-total" th:href="@{/accessories}">
+            <span>Accesorios</span><strong th:text="${accessories.stockCount() + accessories.assignedCount()}">0</strong>
+            <small th:text="${accessories.assignedCount() + ' asignados · ' + accessories.stockCount() + ' en stock'}">0 asignados</small>
         </a>
         <a class="dashboard-total" th:href="@{/people}">
             <span>Personas</span>

@@ -1,0 +1,11 @@
+.accessories-stock { margin-top: 1.5rem; }
+.accessories-stock h2 { margin-top: 0; }
+.accessories-stock__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .8rem; }
+.accessories-stock__grid a { display: grid; gap: .3rem; border-radius: .9rem; box-shadow: var(--shadow-raised-small); color: var(--text-primary); padding: .9rem; text-decoration: none; transition: transform 160ms ease, box-shadow 160ms ease; }
+.accessories-stock__grid a:hover { transform: translateY(-2px); box-shadow: var(--shadow-raised); }
+.accessories-stock__grid span { color: var(--text-muted); }
+.accessories-filter { display: grid; grid-template-columns: minmax(0, 1fr) minmax(12rem, .35fr) auto; gap: .8rem; margin: 1.5rem 0; }
+@media (max-width: 760px) { .accessories-stock__grid { grid-template-columns: 1fr 1fr; } .accessories-filter { grid-template-columns: 1fr; } }
+@media (max-width: 510px) { .accessories-stock__grid { grid-template-columns: 1fr; } }
+
+@media (min-width: 1100px) { .person-profile-asset-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
