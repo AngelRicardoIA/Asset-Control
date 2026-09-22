@@ -10,6 +10,8 @@ import com.assetcontrol.phones.domain.PhoneAssignmentRepository;
 import com.assetcontrol.phones.domain.PhoneAssignmentType;
 import com.assetcontrol.phones.domain.PhoneRepository;
 import com.assetcontrol.phones.domain.PhoneStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -126,13 +128,19 @@ public class PhoneAssignmentService {
     }
 
     @Transactional(readOnly = true)
-    public List<Person> findPeopleWithActiveAssignments(
+    public Page<Person> findPeopleWithActiveAssignmentsPage(
             String query,
-            Long siteId
+            Long siteId,
+            boolean chronological,
+            boolean descending,
+            int page
     ) {
-        return phoneAssignmentRepository.findPeopleWithActiveAssignments(
+        return phoneAssignmentRepository.findPeopleWithActiveAssignmentsPage(
                 query == null ? "" : query.trim(),
-                siteId
+                siteId,
+                chronological,
+                descending,
+                PageRequest.of(page, 10)
         );
     }
 

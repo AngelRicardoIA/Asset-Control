@@ -1,6 +1,8 @@
 package com.assetcontrol.phones.domain;
 
 import com.assetcontrol.people.domain.Person;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -90,11 +92,15 @@ public interface PhoneAssignmentRepository extends JpaRepository<PhoneAssignment
     );
 
     @Query("""
-            SELECT DISTINCT person
-            FROM PhoneAssignment assignment
-            JOIN assignment.person person
-            WHERE assignment.returnedAt IS NULL
-            AND (:siteId IS NULL OR assignment.phone.site.id = :siteId)
+            SELECT person
+            FROM Person person
+            WHERE EXISTS (
+                SELECT assignment.id
+                FROM PhoneAssignment assignment
+                WHERE assignment.person = person
+                AND assignment.returnedAt IS NULL
+                AND (:siteId IS NULL OR assignment.phone.site.id = :siteId)
+            )
             AND (
                 :query = ''
                 OR LOWER(person.username) LIKE LOWER(CONCAT('%', :query, '%'))
@@ -102,11 +108,39 @@ public interface PhoneAssignmentRepository extends JpaRepository<PhoneAssignment
                 OR LOWER(person.externalId) LIKE LOWER(CONCAT('%', :query, '%'))
                 OR LOWER(person.email) LIKE LOWER(CONCAT('%', :query, '%'))
             )
-            ORDER BY person.fullName, person.username
+            ORDER BY
+                CASE WHEN :chronological = false AND :descending = false THEN LOWER(person.fullName) END ASC,
+                CASE WHEN :chronological = false AND :descending = true THEN LOWER(person.fullName) END DESC,
+                CASE WHEN :chronological = false AND :descending = false THEN LOWER(person.username) END ASC,
+                CASE WHEN :chronological = false AND :descending = true THEN LOWER(person.username) END DESC,
+                CASE WHEN :chronological = true AND :descending = false THEN person.createdAt END ASC,
+                CASE WHEN :chronological = true AND :descending = true THEN person.createdAt END DESC,
+                CASE WHEN :descending = false THEN person.id END ASC,
+                CASE WHEN :descending = true THEN person.id END DESC
+            """, countQuery = """
+            SELECT COUNT(person)
+            FROM Person person
+            WHERE EXISTS (
+                SELECT assignment.id
+                FROM PhoneAssignment assignment
+                WHERE assignment.person = person
+                AND assignment.returnedAt IS NULL
+                AND (:siteId IS NULL OR assignment.phone.site.id = :siteId)
+            )
+            AND (
+                :query = ''
+                OR LOWER(person.username) LIKE LOWER(CONCAT('%', :query, '%'))
+                OR LOWER(person.fullName) LIKE LOWER(CONCAT('%', :query, '%'))
+                OR LOWER(person.externalId) LIKE LOWER(CONCAT('%', :query, '%'))
+                OR LOWER(person.email) LIKE LOWER(CONCAT('%', :query, '%'))
+            )
             """)
-    List<Person> findPeopleWithActiveAssignments(
+    Page<Person> findPeopleWithActiveAssignmentsPage(
             @Param("query") String query,
-            @Param("siteId") Long siteId
+            @Param("siteId") Long siteId,
+            @Param("chronological") boolean chronological,
+            @Param("descending") boolean descending,
+            Pageable pageable
     );
 
     @Query("""

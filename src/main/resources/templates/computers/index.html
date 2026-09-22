@@ -138,6 +138,9 @@
         </div>
     </form>
 
+    <p class="inventory-count"
+       th:text="${pagination.totalItems + (pagination.totalItems == 1 ? ' resultado' : ' resultados')}">100 resultados</p>
+
     <section
             class="inventory-panel"
             th:if="${view == T(com.assetcontrol.shared.web.InventoryView).EQUIPMENT}"
@@ -192,6 +195,7 @@
                 >Disponible</span>
             </a>
         </div>
+        <div th:replace="~{fragments/pagination :: controls('/computers')}"></div>
     </section>
 
     <section
@@ -234,6 +238,7 @@
                 </div>
             </article>
         </div>
+        <div th:replace="~{fragments/pagination :: controls('/computers')}"></div>
     </section>
 </main>
 </body>

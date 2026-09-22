@@ -5,10 +5,11 @@ import com.assetcontrol.people.application.DuplicatePersonUsernameException;
 import com.assetcontrol.people.application.PersonProfileService;
 import com.assetcontrol.people.application.PersonService;
 import com.assetcontrol.people.domain.Person;
-import com.assetcontrol.shared.web.InventoryOrdering;
+import com.assetcontrol.shared.web.InventoryPagination;
 import com.assetcontrol.shared.web.InventorySort;
 import com.assetcontrol.shared.web.InventorySortDirection;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -20,19 +21,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.util.Comparator;
 
 @Controller
 @RequestMapping("/people")
 public class PersonController {
-
-    private static final Comparator<Person> PERSON_ALPHABETICAL_ORDER = Comparator
-            .comparing(Person::getFullName, String.CASE_INSENSITIVE_ORDER)
-            .thenComparing(Person::getUsername, String.CASE_INSENSITIVE_ORDER)
-            .thenComparing(Person::getId);
-    private static final Comparator<Person> PERSON_CHRONOLOGICAL_ORDER = Comparator
-            .comparing(Person::getCreatedAt)
-            .thenComparing(Person::getId);
 
     private final PersonProfileService personProfileService;
     private final PersonService personService;
@@ -50,18 +42,20 @@ public class PersonController {
             @RequestParam(defaultValue = "") String query,
             @RequestParam(defaultValue = "ALPHABETICAL") InventorySort sort,
             @RequestParam(defaultValue = "ASCENDING") InventorySortDirection direction,
+            @RequestParam(defaultValue = "1") int page,
             Model model
     ) {
-        model.addAttribute(
-                "people",
-                InventoryOrdering.apply(
-                        personService.search(query),
-                        PERSON_ALPHABETICAL_ORDER,
-                        PERSON_CHRONOLOGICAL_ORDER,
-                        sort,
-                        direction
+        Page<Person> result = InventoryPagination.load(
+                page,
+                index -> personService.searchPage(
+                        query,
+                        sort == InventorySort.CHRONOLOGICAL,
+                        direction == InventorySortDirection.DESCENDING,
+                        index
                 )
         );
+        model.addAttribute("people", result.getContent());
+        model.addAttribute("pagination", new InventoryPagination(result));
         model.addAttribute("query", query);
         model.addAttribute("selectedSort", sort);
         model.addAttribute("selectedDirection", direction);

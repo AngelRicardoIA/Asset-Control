@@ -7,6 +7,8 @@ import com.assetcontrol.computers.domain.ComputerType;
 import com.assetcontrol.sites.application.SiteService;
 import com.assetcontrol.sites.domain.Site;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -27,15 +29,26 @@ public class ComputerService {
         this.siteService = siteService;
     }
 
-    public List<Computer> search(
+    public Page<Computer> searchPage(
             String query,
             ComputerStatus status,
             ComputerType type,
-            Long siteId
+            Long siteId,
+            boolean chronological,
+            boolean descending,
+            int page
     ) {
         String normalizedQuery = query == null ? "" : query.trim();
 
-        return computerRepository.search(normalizedQuery, status, type, siteId);
+        return computerRepository.searchPage(
+                normalizedQuery,
+                status,
+                type,
+                siteId,
+                chronological,
+                descending,
+                PageRequest.of(page, 10)
+        );
     }
 
     public Computer findById(Long id) {

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="https://www.thymeleaf.org">
+<body>
+<div class="pagination-footer" th:fragment="controls(path)">
+    <p class="pagination-footer__summary"
+       th:text="${'Mostrando ' + pagination.firstItem + '–' + pagination.lastItem + ' de ' + pagination.totalItems}">
+        Mostrando 1–10 de 100
+    </p>
+
+    <nav class="pagination" aria-label="Páginas del inventario" th:if="${pagination.totalPages > 1}">
+        <a class="pagination__link"
+           th:if="${pagination.hasPrevious}"
+           th:href="@{${path}(page=${pagination.currentPage - 1},view=${view},query=${query},status=${selectedStatus},type=${selectedType},siteId=${selectedSiteId},sort=${selectedSort},direction=${selectedDirection})}">
+            Anterior
+        </a>
+        <span class="pagination__link pagination__link--disabled" th:unless="${pagination.hasPrevious}">Anterior</span>
+
+        <a class="pagination__link"
+           th:if="${pagination.firstPageOutsideWindow}"
+           th:href="@{${path}(page=1,view=${view},query=${query},status=${selectedStatus},type=${selectedType},siteId=${selectedSiteId},sort=${selectedSort},direction=${selectedDirection})}">1</a>
+        <span class="pagination__ellipsis" th:if="${pagination.leadingGap}">…</span>
+
+        <a class="pagination__link"
+           th:each="number : ${pagination.visiblePages}"
+           th:classappend="${number == pagination.currentPage ? ' pagination__link--current' : ''}"
+           th:attr="aria-current=${number == pagination.currentPage ? 'page' : null}"
+           th:href="@{${path}(page=${number},view=${view},query=${query},status=${selectedStatus},type=${selectedType},siteId=${selectedSiteId},sort=${selectedSort},direction=${selectedDirection})}"
+           th:text="${number}">2</a>
+
+        <span class="pagination__ellipsis" th:if="${pagination.trailingGap}">…</span>
+        <a class="pagination__link"
+           th:if="${pagination.lastPageOutsideWindow}"
+           th:href="@{${path}(page=${pagination.totalPages},view=${view},query=${query},status=${selectedStatus},type=${selectedType},siteId=${selectedSiteId},sort=${selectedSort},direction=${selectedDirection})}"
+           th:text="${pagination.totalPages}">10</a>
+
+        <a class="pagination__link"
+           th:if="${pagination.hasNext}"
+           th:href="@{${path}(page=${pagination.currentPage + 1},view=${view},query=${query},status=${selectedStatus},type=${selectedType},siteId=${selectedSiteId},sort=${selectedSort},direction=${selectedDirection})}">
+            Siguiente
+        </a>
+        <span class="pagination__link pagination__link--disabled" th:unless="${pagination.hasNext}">Siguiente</span>
+    </nav>
+</div>
+</body>
+</html>

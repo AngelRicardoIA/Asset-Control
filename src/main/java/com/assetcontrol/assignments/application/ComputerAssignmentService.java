@@ -12,6 +12,8 @@ import com.assetcontrol.people.application.DuplicatePersonIdentifierException;
 import com.assetcontrol.people.application.PersonService;
 import com.assetcontrol.people.domain.Person;
 import com.assetcontrol.people.domain.PersonRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.assetcontrol.people.application.DuplicatePersonUsernameException;
@@ -253,13 +255,19 @@ public class ComputerAssignmentService {
         ).stream().findFirst().orElse(null);
     }
 
-    public List<Person> findPeopleWithActiveAssignments(
+    public Page<Person> findPeopleWithActiveAssignmentsPage(
             String query,
-            Long siteId
+            Long siteId,
+            boolean chronological,
+            boolean descending,
+            int page
     ) {
-        return assignmentRepository.findPeopleWithActiveAssignments(
+        return assignmentRepository.findPeopleWithActiveAssignmentsPage(
                 query == null ? "" : query.trim(),
-                siteId
+                siteId,
+                chronological,
+                descending,
+                PageRequest.of(page, 10)
         );
     }
 

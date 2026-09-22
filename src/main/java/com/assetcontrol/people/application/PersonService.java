@@ -2,6 +2,8 @@ package com.assetcontrol.people.application;
 
 import com.assetcontrol.people.domain.Person;
 import com.assetcontrol.people.domain.PersonRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,8 +29,18 @@ public class PersonService {
                 .orElseThrow(() -> new PersonNotFoundException(personId));
     }
 
-    public List<Person> search(String query) {
-        return personRepository.search(query == null ? "" : query.trim());
+    public Page<Person> searchPage(
+            String query,
+            boolean chronological,
+            boolean descending,
+            int page
+    ) {
+        return personRepository.searchPage(
+                query == null ? "" : query.trim(),
+                chronological,
+                descending,
+                PageRequest.of(page, 10)
+        );
     }
 
     private String normalizeUsername(String value) {

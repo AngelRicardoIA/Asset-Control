@@ -11,11 +11,12 @@ import com.assetcontrol.phones.maintenance.application.PhoneMaintenanceService;
 import com.assetcontrol.people.application.DuplicatePersonIdentifierException;
 import com.assetcontrol.people.application.DuplicatePersonUsernameException;
 import com.assetcontrol.people.domain.Person;
-import com.assetcontrol.shared.web.InventoryOrdering;
+import com.assetcontrol.shared.web.InventoryPagination;
 import com.assetcontrol.shared.web.InventorySort;
 import com.assetcontrol.shared.web.InventorySortDirection;
 import com.assetcontrol.shared.web.InventoryView;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -27,28 +28,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
 @Controller
 @RequestMapping("/phones")
 public class PhoneController {
-
-    private static final Comparator<Phone> PHONE_ALPHABETICAL_ORDER = Comparator
-            .comparing(PhoneController::displayIdentifier, String.CASE_INSENSITIVE_ORDER)
-            .thenComparing(Phone::getImei, String.CASE_INSENSITIVE_ORDER)
-            .thenComparing(Phone::getId);
-    private static final Comparator<Phone> PHONE_CHRONOLOGICAL_ORDER = Comparator
-            .comparing(Phone::getCreatedAt)
-            .thenComparing(Phone::getId);
-    private static final Comparator<Person> PERSON_ALPHABETICAL_ORDER = Comparator
-            .comparing(Person::getFullName, String.CASE_INSENSITIVE_ORDER)
-            .thenComparing(Person::getUsername, String.CASE_INSENSITIVE_ORDER)
-            .thenComparing(Person::getId);
-    private static final Comparator<Person> PERSON_CHRONOLOGICAL_ORDER = Comparator
-            .comparing(Person::getCreatedAt)
-            .thenComparing(Person::getId);
 
     private final PhoneService phoneService;
     private final PhoneRegistrationService registrationService;
@@ -78,16 +63,21 @@ public class PhoneController {
             @RequestParam(defaultValue = "EQUIPMENT") InventoryView view,
             @RequestParam(defaultValue = "ALPHABETICAL") InventorySort sort,
             @RequestParam(defaultValue = "ASCENDING") InventorySortDirection direction,
+            @RequestParam(defaultValue = "1") int page,
             Model model
     ) {
+        boolean chronological = sort == InventorySort.CHRONOLOGICAL;
+        boolean descending = direction == InventorySortDirection.DESCENDING;
+
         if (view == InventoryView.EQUIPMENT) {
-            List<Phone> phones = InventoryOrdering.apply(
-                    phoneService.search(query, status, siteId),
-                    PHONE_ALPHABETICAL_ORDER,
-                    PHONE_CHRONOLOGICAL_ORDER,
-                    sort,
-                    direction
+            Page<Phone> result = InventoryPagination.load(
+                    page,
+                    index -> phoneService.searchPage(
+                            query, status, siteId, chronological, descending, index
+                    )
             );
+            List<Phone> phones = result.getContent();
+            model.addAttribute("pagination", new InventoryPagination(result));
 
             List<Long> availablePhoneIds = phones.stream()
                     .filter(phone -> phone.getStatus() == PhoneStatus.AVAILABLE)
@@ -108,13 +98,14 @@ public class PhoneController {
             model.addAttribute("peopleWithAssets", List.of());
             model.addAttribute("activeAssignmentsByPersonId", Map.of());
         } else {
-            List<Person> people = InventoryOrdering.apply(
-                    phoneAssignmentService.findPeopleWithActiveAssignments(query, siteId),
-                    PERSON_ALPHABETICAL_ORDER,
-                    PERSON_CHRONOLOGICAL_ORDER,
-                    sort,
-                    direction
+            Page<Person> result = InventoryPagination.load(
+                    page,
+                    index -> phoneAssignmentService.findPeopleWithActiveAssignmentsPage(
+                            query, siteId, chronological, descending, index
+                    )
             );
+            List<Person> people = result.getContent();
+            model.addAttribute("pagination", new InventoryPagination(result));
 
             model.addAttribute("phones", List.of());
             model.addAttribute("activeAssignmentsByPhoneId", Map.of());
@@ -140,12 +131,6 @@ public class PhoneController {
         model.addAttribute("phoneStatuses", PhoneStatus.values());
 
         return "phones/index";
-    }
-
-    private static String displayIdentifier(Phone phone) {
-        return phone.getPhoneLine() == null
-                ? phone.getImei()
-                : phone.getPhoneLine().getNumber();
     }
 
     @GetMapping("/new")

@@ -13,12 +13,13 @@ import com.assetcontrol.people.application.DuplicatePersonIdentifierException;
 import com.assetcontrol.people.application.DuplicatePersonUsernameException;
 import com.assetcontrol.people.application.PersonService;
 import com.assetcontrol.people.domain.Person;
-import com.assetcontrol.shared.web.InventoryOrdering;
+import com.assetcontrol.shared.web.InventoryPagination;
 import com.assetcontrol.shared.web.InventorySort;
 import com.assetcontrol.shared.web.InventorySortDirection;
 import com.assetcontrol.shared.web.InventoryView;
 import com.assetcontrol.sites.application.SiteService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -30,27 +31,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import com.assetcontrol.maintenance.application.ComputerMaintenanceService;
 
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
 @Controller
 @RequestMapping("/computers")
 public class ComputerController {
-
-    private static final Comparator<Computer> COMPUTER_ALPHABETICAL_ORDER = Comparator
-            .comparing(Computer::getHost, String.CASE_INSENSITIVE_ORDER)
-            .thenComparing(Computer::getId);
-    private static final Comparator<Computer> COMPUTER_CHRONOLOGICAL_ORDER = Comparator
-            .comparing(Computer::getCreatedAt)
-            .thenComparing(Computer::getId);
-    private static final Comparator<Person> PERSON_ALPHABETICAL_ORDER = Comparator
-            .comparing(Person::getFullName, String.CASE_INSENSITIVE_ORDER)
-            .thenComparing(Person::getUsername, String.CASE_INSENSITIVE_ORDER)
-            .thenComparing(Person::getId);
-    private static final Comparator<Person> PERSON_CHRONOLOGICAL_ORDER = Comparator
-            .comparing(Person::getCreatedAt)
-            .thenComparing(Person::getId);
 
     private final ComputerService computerService;
     private final ComputerRegistrationService registrationService;
@@ -84,16 +70,21 @@ public class ComputerController {
             @RequestParam(defaultValue = "EQUIPMENT") InventoryView view,
             @RequestParam(defaultValue = "ALPHABETICAL") InventorySort sort,
             @RequestParam(defaultValue = "ASCENDING") InventorySortDirection direction,
+            @RequestParam(defaultValue = "1") int page,
             Model model
     ) {
+        boolean chronological = sort == InventorySort.CHRONOLOGICAL;
+        boolean descending = direction == InventorySortDirection.DESCENDING;
+
         if (view == InventoryView.EQUIPMENT) {
-            List<Computer> computers = InventoryOrdering.apply(
-                    computerService.search(query, status, type, siteId),
-                    COMPUTER_ALPHABETICAL_ORDER,
-                    COMPUTER_CHRONOLOGICAL_ORDER,
-                    sort,
-                    direction
+            Page<Computer> result = InventoryPagination.load(
+                    page,
+                    index -> computerService.searchPage(
+                            query, status, type, siteId, chronological, descending, index
+                    )
             );
+            List<Computer> computers = result.getContent();
+            model.addAttribute("pagination", new InventoryPagination(result));
 
             List<Long> availableComputerIds = computers.stream()
                     .filter(computer -> computer.getStatus() == ComputerStatus.AVAILABLE)
@@ -114,13 +105,14 @@ public class ComputerController {
             model.addAttribute("peopleWithAssets", List.of());
             model.addAttribute("activeAssignmentsByPersonId", Map.of());
         } else {
-            List<Person> people = InventoryOrdering.apply(
-                    assignmentService.findPeopleWithActiveAssignments(query, siteId),
-                    PERSON_ALPHABETICAL_ORDER,
-                    PERSON_CHRONOLOGICAL_ORDER,
-                    sort,
-                    direction
+            Page<Person> result = InventoryPagination.load(
+                    page,
+                    index -> assignmentService.findPeopleWithActiveAssignmentsPage(
+                            query, siteId, chronological, descending, index
+                    )
             );
+            List<Person> people = result.getContent();
+            model.addAttribute("pagination", new InventoryPagination(result));
 
             model.addAttribute("computers", List.of());
             model.addAttribute("activeAssignmentsByComputerId", Map.of());

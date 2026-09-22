@@ -8,6 +8,8 @@ import com.assetcontrol.phones.domain.PhoneStatus;
 import com.assetcontrol.sites.application.SiteService;
 import com.assetcontrol.sites.domain.Site;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
@@ -37,15 +39,21 @@ public class PhoneService {
     }
 
     @Transactional(readOnly = true)
-    public List<Phone> search(
+    public Page<Phone> searchPage(
             String query,
             PhoneStatus status,
-            Long siteId
+            Long siteId,
+            boolean chronological,
+            boolean descending,
+            int page
     ) {
-        return phoneRepository.search(
+        return phoneRepository.searchPage(
                 query == null ? "" : query.trim(),
                 status,
-                siteId
+                siteId,
+                chronological,
+                descending,
+                PageRequest.of(page, 10)
         );
     }
 
