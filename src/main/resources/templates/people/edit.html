@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="https://www.thymeleaf.org">
+<head th:replace="~{fragments/document-head :: head('Editar persona')}"></head>
+<body>
+<header th:replace="~{fragments/app-header :: header}"></header>
+
+<main class="page-content narrow-content">
+    <section class="page-heading">
+        <div>
+            <p class="eyebrow">Personas</p>
+            <h1>Editar persona</h1>
+            <p>Actualiza los datos sin alterar su historial de activos.</p>
+        </div>
+    </section>
+
+    <form
+            class="form-panel"
+            th:action="@{/people/{personId}(personId=${personId})}"
+            method="post"
+    >
+        <div th:replace="~{people/form-fields :: fields(${form})}"></div>
+
+        <div class="form-actions">
+            <a class="secondary-button" th:href="@{/people/{personId}(personId=${personId})}">Cancelar</a>
+            <button class="primary-button" type="submit">Guardar cambios</button>
+        </div>
+    </form>
+</main>
+</body>
+</html>

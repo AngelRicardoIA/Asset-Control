@@ -122,4 +122,12 @@ public class Person {
     public String getManagerName() {
         return managerName;
     }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
 }

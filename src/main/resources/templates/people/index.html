@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="https://www.thymeleaf.org">
+<head th:replace="~{fragments/document-head :: head('Personas')}"></head>
+<body>
+<header th:replace="~{fragments/app-header :: header}"></header>
+
+<main class="page-content">
+    <section class="page-heading">
+        <div>
+            <p class="eyebrow">Administración</p>
+            <h1>Personas</h1>
+            <p>Consulta y administra las personas relacionadas con los activos.</p>
+        </div>
+        <div class="page-actions">
+            <a class="secondary-button" th:href="@{/computers(view='PEOPLE')}">Ver por equipos</a>
+            <a class="secondary-button" th:href="@{/phones(view='PEOPLE')}">Ver por teléfonos</a>
+            <a class="primary-button" th:href="@{/people/new}">Nueva persona</a>
+        </div>
+    </section>
+
+    <form class="filter-panel filter-panel--people" th:action="@{/people}" method="get">
+        <input
+                type="search"
+                name="query"
+                th:value="${query}"
+                placeholder="Nombre, usuario, número de empleado, correo, puesto o área"
+        >
+        <button class="secondary-button" type="submit">Buscar</button>
+    </form>
+
+    <p class="alert alert--success" th:if="${successMessage}" th:text="${successMessage}"></p>
+
+    <section class="inventory-panel">
+        <div class="empty-state" th:if="${#lists.isEmpty(people)}">
+            <h2>No se encontraron personas</h2>
+            <p>Registra una persona o ajusta la búsqueda.</p>
+        </div>
+
+        <div class="person-directory-list" th:unless="${#lists.isEmpty(people)}">
+            <a
+                    class="person-directory-item"
+                    th:each="person : ${people}"
+                    th:href="@{/people/{personId}(personId=${person.id})}"
+            >
+                <div class="person-main-data">
+                    <strong th:text="${person.fullName}">Nombre completo</strong>
+                    <span th:text="${person.username + ' · ' + person.externalId}">usuario · ID</span>
+                    <small th:text="${person.email}">correo</small>
+                    <small
+                            th:if="${person.jobTitle != null or person.department != null}"
+                            th:text="${(person.jobTitle ?: 'Puesto sin registrar') + ' · ' + (person.department ?: 'Área sin registrar')}"
+                    >Puesto · Área</small>
+                </div>
+                <span class="person-directory-item__action">Ver perfil</span>
+            </a>
+        </div>
+    </section>
+</main>
+</body>
+</html>

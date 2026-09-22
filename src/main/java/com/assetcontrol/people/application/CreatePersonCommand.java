@@ -4,6 +4,17 @@ public record CreatePersonCommand(
         String externalId,
         String username,
         String fullName,
-        String email
+        String email,
+        String jobTitle,
+        String department,
+        String managerName
 ) {
+    public CreatePersonCommand(
+            String externalId,
+            String username,
+            String fullName,
+            String email
+    ) {
+        this(externalId, username, fullName, email, null, null, null);
+    }
 }

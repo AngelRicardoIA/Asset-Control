@@ -27,6 +27,10 @@ public class PersonService {
                 .orElseThrow(() -> new PersonNotFoundException(personId));
     }
 
+    public List<Person> search(String query) {
+        return personRepository.search(query == null ? "" : query.trim());
+    }
+
     private String normalizeUsername(String value) {
         return normalizeRequired(value, "nombre de usuario")
                 .toLowerCase(Locale.ROOT);
@@ -52,7 +56,44 @@ public class PersonService {
                 normalizeEmail(command.email())
         );
 
+        person.updateDetails(
+                externalId,
+                username,
+                normalizeRequired(command.fullName(), "nombre"),
+                normalizeEmail(command.email()),
+                normalizeOptional(command.jobTitle()),
+                normalizeOptional(command.department()),
+                normalizeOptional(command.managerName())
+        );
+
         return personRepository.save(person);
+    }
+
+    @Transactional
+    public Person update(Long personId, UpdatePersonCommand command) {
+        Person person = findById(personId);
+        String externalId = normalizeIdentifier(command.externalId());
+        String username = normalizeUsername(command.username());
+
+        if (personRepository.existsByExternalIdIgnoreCaseAndIdNot(externalId, personId)) {
+            throw new DuplicatePersonIdentifierException(externalId);
+        }
+
+        if (personRepository.existsByUsernameIgnoreCaseAndIdNot(username, personId)) {
+            throw new DuplicatePersonUsernameException(username);
+        }
+
+        person.updateDetails(
+                externalId,
+                username,
+                normalizeRequired(command.fullName(), "nombre"),
+                normalizeEmail(command.email()),
+                normalizeOptional(command.jobTitle()),
+                normalizeOptional(command.department()),
+                normalizeOptional(command.managerName())
+        );
+
+        return person;
     }
 
     private String normalizeIdentifier(String value) {
@@ -71,5 +112,14 @@ public class PersonService {
         }
 
         return normalized;
+    }
+
+    private String normalizeOptional(String value) {
+        if (value == null) {
+            return null;
+        }
+
+        String normalized = value.trim().replaceAll("\\s+", " ");
+        return normalized.isBlank() ? null : normalized;
     }
 }

@@ -13,10 +13,17 @@
         </div>
 
         <div class="page-actions">
+            <a class="secondary-button" th:href="@{/people}">Volver a personas</a>
             <a class="secondary-button" th:href="@{/computers(view='PEOPLE')}">Ver equipos</a>
             <a class="secondary-button" th:href="@{/phones(view='PEOPLE')}">Ver teléfonos</a>
+            <a
+                    class="primary-button"
+                    th:href="@{/people/{personId}/edit(personId=${profile.person.id})}"
+            >Editar persona</a>
         </div>
     </section>
+
+    <p class="alert alert--success" th:if="${successMessage}" th:text="${successMessage}"></p>
 
     <section class="detail-grid">
         <article class="detail-card">

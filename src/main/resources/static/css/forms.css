@@ -58,6 +58,10 @@
     grid-template-columns: minmax(0, 1fr) repeat(3, minmax(150px, 190px)) auto;
 }
 
+.filter-panel--people {
+    grid-template-columns: minmax(0, 1fr) auto;
+}
+
 .inventory-view-toggle {
     display: inline-flex;
     gap: 0.35rem;
@@ -185,6 +189,35 @@
 .person-list {
     display: grid;
     gap: 1rem;
+}
+
+.person-directory-list {
+    display: grid;
+    gap: 0.8rem;
+}
+
+.person-directory-item {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    border-radius: 1rem;
+    box-shadow: var(--shadow-pressed);
+    color: inherit;
+    padding: 1rem 1.1rem;
+    text-decoration: none;
+    transition: box-shadow 160ms ease, transform 160ms ease;
+}
+
+.person-directory-item:hover {
+    box-shadow: var(--shadow-raised);
+    transform: translateY(-2px);
+}
+
+.person-directory-item__action {
+    color: var(--accent);
+    font-size: 0.85rem;
+    font-weight: 700;
 }
 
 .person-item {
@@ -749,7 +782,8 @@
     .page-heading,
     .computer-item,
     .phone-item,
-    .site-item {
+    .site-item,
+    .person-directory-item {
         align-items: stretch;
         flex-direction: column;
     }

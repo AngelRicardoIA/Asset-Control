@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="https://www.thymeleaf.org">
+<body>
+<div class="field-grid" th:fragment="fields(personForm)" th:object="${personForm}">
+    <div class="form-field">
+        <label for="externalId">Número de empleado</label>
+        <input id="externalId" type="text" th:field="*{externalId}" maxlength="100" required>
+        <small class="form-error" th:errors="*{externalId}"></small>
+    </div>
+
+    <div class="form-field">
+        <label for="username">Nombre de usuario</label>
+        <input id="username" type="text" th:field="*{username}" maxlength="100" required>
+        <small class="form-error" th:errors="*{username}"></small>
+    </div>
+
+    <div class="form-field full-width">
+        <label for="fullName">Nombre completo</label>
+        <input id="fullName" type="text" th:field="*{fullName}" maxlength="150" required>
+        <small class="form-error" th:errors="*{fullName}"></small>
+    </div>
+
+    <div class="form-field full-width">
+        <label for="email">Correo</label>
+        <input id="email" type="email" th:field="*{email}" maxlength="254" required>
+        <small class="form-error" th:errors="*{email}"></small>
+    </div>
+
+    <div class="form-field">
+        <label for="jobTitle">Puesto</label>
+        <input id="jobTitle" type="text" th:field="*{jobTitle}" maxlength="150">
+        <small class="form-error" th:errors="*{jobTitle}"></small>
+    </div>
+
+    <div class="form-field">
+        <label for="department">Área o departamento</label>
+        <input id="department" type="text" th:field="*{department}" maxlength="150">
+        <small class="form-error" th:errors="*{department}"></small>
+    </div>
+
+    <div class="form-field full-width">
+        <label for="managerName">Gerente</label>
+        <input id="managerName" type="text" th:field="*{managerName}" maxlength="150">
+        <small class="form-error" th:errors="*{managerName}"></small>
+    </div>
+</div>
+</body>
+</html>

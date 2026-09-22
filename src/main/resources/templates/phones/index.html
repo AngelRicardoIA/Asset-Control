@@ -12,6 +12,11 @@
             <p>Equipos móviles y líneas disponibles.</p>
         </div>
         <div class="page-actions">
+            <a
+                    class="secondary-button"
+                    th:if="${view == T(com.assetcontrol.shared.web.InventoryView).PEOPLE}"
+                    th:href="@{/people}"
+            >Administrar personas</a>
             <a class="secondary-button" th:href="@{/inventory/export}">Exportar</a>
             <a class="secondary-button" th:href="@{/assignment-imports/phones}">Importar</a>
             <a class="primary-button" th:href="@{/phones/new}">Nuevo teléfono</a>
