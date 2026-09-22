@@ -1,0 +1,598 @@
+From 0b82633a6ddb8f53127290eb0958e1c96d6b6882 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Tue, 22 Sep 2026 13:16:33 -0400
+Subject: [PATCH 3/3] feat: add inventory sorting controls
+
+---
+ .../computers/web/ComputerController.java     | 44 +++++++++++++----
+ .../people/web/PersonController.java          | 31 +++++++++++-
+ .../com/assetcontrol/phones/domain/Phone.java | 10 +++-
+ .../phones/web/PhoneController.java           | 48 +++++++++++++++++--
+ .../shared/web/InventoryOrdering.java         | 28 +++++++++++
+ .../shared/web/InventorySort.java             | 16 +++++++
+ .../shared/web/InventorySortDirection.java    | 16 +++++++
+ src/main/resources/static/css/forms.css       |  8 +++-
+ .../resources/templates/computers/index.html  | 31 +++++++++++-
+ .../resources/templates/people/index.html     | 24 ++++++++++
+ .../resources/templates/phones/index.html     | 31 +++++++++++-
+ 11 files changed, 267 insertions(+), 20 deletions(-)
+ create mode 100644 src/main/java/com/assetcontrol/shared/web/InventoryOrdering.java
+ create mode 100644 src/main/java/com/assetcontrol/shared/web/InventorySort.java
+ create mode 100644 src/main/java/com/assetcontrol/shared/web/InventorySortDirection.java
+
+diff --git a/src/main/java/com/assetcontrol/computers/web/ComputerController.java b/src/main/java/com/assetcontrol/computers/web/ComputerController.java
+index b089bd3..43882df 100644
+--- a/src/main/java/com/assetcontrol/computers/web/ComputerController.java
++++ b/src/main/java/com/assetcontrol/computers/web/ComputerController.java
+@@ -13,6 +13,9 @@ import com.assetcontrol.people.application.DuplicatePersonIdentifierException;
+ import com.assetcontrol.people.application.DuplicatePersonUsernameException;
+ import com.assetcontrol.people.application.PersonService;
+ import com.assetcontrol.people.domain.Person;
++import com.assetcontrol.shared.web.InventoryOrdering;
++import com.assetcontrol.shared.web.InventorySort;
++import com.assetcontrol.shared.web.InventorySortDirection;
+ import com.assetcontrol.shared.web.InventoryView;
+ import com.assetcontrol.sites.application.SiteService;
+ import jakarta.validation.Valid;
+@@ -27,6 +30,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
+ import org.springframework.web.bind.annotation.RequestParam;
+ import com.assetcontrol.maintenance.application.ComputerMaintenanceService;
+ 
++import java.util.Comparator;
+ import java.util.List;
+ import java.util.Map;
+ 
+@@ -34,6 +38,20 @@ import java.util.Map;
+ @RequestMapping("/computers")
+ public class ComputerController {
+ 
++    private static final Comparator<Computer> COMPUTER_ALPHABETICAL_ORDER = Comparator
++            .comparing(Computer::getHost, String.CASE_INSENSITIVE_ORDER)
++            .thenComparing(Computer::getId);
++    private static final Comparator<Computer> COMPUTER_CHRONOLOGICAL_ORDER = Comparator
++            .comparing(Computer::getCreatedAt)
++            .thenComparing(Computer::getId);
++    private static final Comparator<Person> PERSON_ALPHABETICAL_ORDER = Comparator
++            .comparing(Person::getFullName, String.CASE_INSENSITIVE_ORDER)
++            .thenComparing(Person::getUsername, String.CASE_INSENSITIVE_ORDER)
++            .thenComparing(Person::getId);
++    private static final Comparator<Person> PERSON_CHRONOLOGICAL_ORDER = Comparator
++            .comparing(Person::getCreatedAt)
++            .thenComparing(Person::getId);
++
+     private final ComputerService computerService;
+     private final ComputerRegistrationService registrationService;
+     private final ComputerAssignmentService assignmentService;
+@@ -64,14 +82,17 @@ public class ComputerController {
+             @RequestParam(required = false) ComputerType type,
+             @RequestParam(required = false) Long siteId,
+             @RequestParam(defaultValue = "EQUIPMENT") InventoryView view,
++            @RequestParam(defaultValue = "ALPHABETICAL") InventorySort sort,
++            @RequestParam(defaultValue = "ASCENDING") InventorySortDirection direction,
+             Model model
+     ) {
+         if (view == InventoryView.EQUIPMENT) {
+-            List<Computer> computers = computerService.search(
+-                    query,
+-                    status,
+-                    type,
+-                    siteId
++            List<Computer> computers = InventoryOrdering.apply(
++                    computerService.search(query, status, type, siteId),
++                    COMPUTER_ALPHABETICAL_ORDER,
++                    COMPUTER_CHRONOLOGICAL_ORDER,
++                    sort,
++                    direction
+             );
+ 
+             List<Long> availableComputerIds = computers.stream()
+@@ -93,9 +114,12 @@ public class ComputerController {
+             model.addAttribute("peopleWithAssets", List.of());
+             model.addAttribute("activeAssignmentsByPersonId", Map.of());
+         } else {
+-            List<Person> people = assignmentService.findPeopleWithActiveAssignments(
+-                    query,
+-                    siteId
++            List<Person> people = InventoryOrdering.apply(
++                    assignmentService.findPeopleWithActiveAssignments(query, siteId),
++                    PERSON_ALPHABETICAL_ORDER,
++                    PERSON_CHRONOLOGICAL_ORDER,
++                    sort,
++                    direction
+             );
+ 
+             model.addAttribute("computers", List.of());
+@@ -115,6 +139,10 @@ public class ComputerController {
+         model.addAttribute("selectedType", type);
+         model.addAttribute("selectedSiteId", siteId);
+         model.addAttribute("view", view);
++        model.addAttribute("selectedSort", sort);
++        model.addAttribute("selectedDirection", direction);
++        model.addAttribute("sortOptions", InventorySort.values());
++        model.addAttribute("directionOptions", InventorySortDirection.values());
+         model.addAttribute("sites", siteService.findAllActive());
+         model.addAttribute("computerStatuses", ComputerStatus.values());
+         model.addAttribute("computerTypes", ComputerType.values());
+diff --git a/src/main/java/com/assetcontrol/people/web/PersonController.java b/src/main/java/com/assetcontrol/people/web/PersonController.java
+index 92fc90f..756370a 100644
+--- a/src/main/java/com/assetcontrol/people/web/PersonController.java
++++ b/src/main/java/com/assetcontrol/people/web/PersonController.java
+@@ -4,6 +4,10 @@ import com.assetcontrol.people.application.DuplicatePersonIdentifierException;
+ import com.assetcontrol.people.application.DuplicatePersonUsernameException;
+ import com.assetcontrol.people.application.PersonProfileService;
+ import com.assetcontrol.people.application.PersonService;
++import com.assetcontrol.people.domain.Person;
++import com.assetcontrol.shared.web.InventoryOrdering;
++import com.assetcontrol.shared.web.InventorySort;
++import com.assetcontrol.shared.web.InventorySortDirection;
+ import jakarta.validation.Valid;
+ import org.springframework.stereotype.Controller;
+ import org.springframework.ui.Model;
+@@ -16,10 +20,20 @@ import org.springframework.web.bind.annotation.RequestMapping;
+ import org.springframework.web.bind.annotation.RequestParam;
+ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+ 
++import java.util.Comparator;
++
+ @Controller
+ @RequestMapping("/people")
+ public class PersonController {
+ 
++    private static final Comparator<Person> PERSON_ALPHABETICAL_ORDER = Comparator
++            .comparing(Person::getFullName, String.CASE_INSENSITIVE_ORDER)
++            .thenComparing(Person::getUsername, String.CASE_INSENSITIVE_ORDER)
++            .thenComparing(Person::getId);
++    private static final Comparator<Person> PERSON_CHRONOLOGICAL_ORDER = Comparator
++            .comparing(Person::getCreatedAt)
++            .thenComparing(Person::getId);
++
+     private final PersonProfileService personProfileService;
+     private final PersonService personService;
+ 
+@@ -34,10 +48,25 @@ public class PersonController {
+     @GetMapping
+     public String showPeople(
+             @RequestParam(defaultValue = "") String query,
++            @RequestParam(defaultValue = "ALPHABETICAL") InventorySort sort,
++            @RequestParam(defaultValue = "ASCENDING") InventorySortDirection direction,
+             Model model
+     ) {
+-        model.addAttribute("people", personService.search(query));
++        model.addAttribute(
++                "people",
++                InventoryOrdering.apply(
++                        personService.search(query),
++                        PERSON_ALPHABETICAL_ORDER,
++                        PERSON_CHRONOLOGICAL_ORDER,
++                        sort,
++                        direction
++                )
++        );
+         model.addAttribute("query", query);
++        model.addAttribute("selectedSort", sort);
++        model.addAttribute("selectedDirection", direction);
++        model.addAttribute("sortOptions", InventorySort.values());
++        model.addAttribute("directionOptions", InventorySortDirection.values());
+         return "people/index";
+     }
+ 
+diff --git a/src/main/java/com/assetcontrol/phones/domain/Phone.java b/src/main/java/com/assetcontrol/phones/domain/Phone.java
+index dccad18..5599aed 100644
+--- a/src/main/java/com/assetcontrol/phones/domain/Phone.java
++++ b/src/main/java/com/assetcontrol/phones/domain/Phone.java
+@@ -130,4 +130,12 @@ public class Phone {
+     public String getObservations() {
+         return observations;
+     }
+-}
+\ No newline at end of file
++
++    public LocalDateTime getCreatedAt() {
++        return createdAt;
++    }
++
++    public LocalDateTime getUpdatedAt() {
++        return updatedAt;
++    }
++}
+diff --git a/src/main/java/com/assetcontrol/phones/web/PhoneController.java b/src/main/java/com/assetcontrol/phones/web/PhoneController.java
+index 265a02a..0b805ea 100644
+--- a/src/main/java/com/assetcontrol/phones/web/PhoneController.java
++++ b/src/main/java/com/assetcontrol/phones/web/PhoneController.java
+@@ -11,6 +11,9 @@ import com.assetcontrol.phones.maintenance.application.PhoneMaintenanceService;
+ import com.assetcontrol.people.application.DuplicatePersonIdentifierException;
+ import com.assetcontrol.people.application.DuplicatePersonUsernameException;
+ import com.assetcontrol.people.domain.Person;
++import com.assetcontrol.shared.web.InventoryOrdering;
++import com.assetcontrol.shared.web.InventorySort;
++import com.assetcontrol.shared.web.InventorySortDirection;
+ import com.assetcontrol.shared.web.InventoryView;
+ import jakarta.validation.Valid;
+ import org.springframework.stereotype.Controller;
+@@ -24,6 +27,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
+ import org.springframework.web.bind.annotation.RequestParam;
+ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+ 
++import java.util.Comparator;
+ import java.util.List;
+ import java.util.Map;
+ 
+@@ -31,6 +35,21 @@ import java.util.Map;
+ @RequestMapping("/phones")
+ public class PhoneController {
+ 
++    private static final Comparator<Phone> PHONE_ALPHABETICAL_ORDER = Comparator
++            .comparing(PhoneController::displayIdentifier, String.CASE_INSENSITIVE_ORDER)
++            .thenComparing(Phone::getImei, String.CASE_INSENSITIVE_ORDER)
++            .thenComparing(Phone::getId);
++    private static final Comparator<Phone> PHONE_CHRONOLOGICAL_ORDER = Comparator
++            .comparing(Phone::getCreatedAt)
++            .thenComparing(Phone::getId);
++    private static final Comparator<Person> PERSON_ALPHABETICAL_ORDER = Comparator
++            .comparing(Person::getFullName, String.CASE_INSENSITIVE_ORDER)
++            .thenComparing(Person::getUsername, String.CASE_INSENSITIVE_ORDER)
++            .thenComparing(Person::getId);
++    private static final Comparator<Person> PERSON_CHRONOLOGICAL_ORDER = Comparator
++            .comparing(Person::getCreatedAt)
++            .thenComparing(Person::getId);
++
+     private final PhoneService phoneService;
+     private final PhoneRegistrationService registrationService;
+     private final PhoneAssignmentService phoneAssignmentService;
+@@ -57,10 +76,18 @@ public class PhoneController {
+             @RequestParam(required = false) PhoneStatus status,
+             @RequestParam(required = false) Long siteId,
+             @RequestParam(defaultValue = "EQUIPMENT") InventoryView view,
++            @RequestParam(defaultValue = "ALPHABETICAL") InventorySort sort,
++            @RequestParam(defaultValue = "ASCENDING") InventorySortDirection direction,
+             Model model
+     ) {
+         if (view == InventoryView.EQUIPMENT) {
+-            List<Phone> phones = phoneService.search(query, status, siteId);
++            List<Phone> phones = InventoryOrdering.apply(
++                    phoneService.search(query, status, siteId),
++                    PHONE_ALPHABETICAL_ORDER,
++                    PHONE_CHRONOLOGICAL_ORDER,
++                    sort,
++                    direction
++            );
+ 
+             List<Long> availablePhoneIds = phones.stream()
+                     .filter(phone -> phone.getStatus() == PhoneStatus.AVAILABLE)
+@@ -81,9 +108,12 @@ public class PhoneController {
+             model.addAttribute("peopleWithAssets", List.of());
+             model.addAttribute("activeAssignmentsByPersonId", Map.of());
+         } else {
+-            List<Person> people = phoneAssignmentService.findPeopleWithActiveAssignments(
+-                    query,
+-                    siteId
++            List<Person> people = InventoryOrdering.apply(
++                    phoneAssignmentService.findPeopleWithActiveAssignments(query, siteId),
++                    PERSON_ALPHABETICAL_ORDER,
++                    PERSON_CHRONOLOGICAL_ORDER,
++                    sort,
++                    direction
+             );
+ 
+             model.addAttribute("phones", List.of());
+@@ -102,12 +132,22 @@ public class PhoneController {
+         model.addAttribute("selectedStatus", status);
+         model.addAttribute("selectedSiteId", siteId);
+         model.addAttribute("view", view);
++        model.addAttribute("selectedSort", sort);
++        model.addAttribute("selectedDirection", direction);
++        model.addAttribute("sortOptions", InventorySort.values());
++        model.addAttribute("directionOptions", InventorySortDirection.values());
+         model.addAttribute("sites", siteService.findAllActive());
+         model.addAttribute("phoneStatuses", PhoneStatus.values());
+ 
+         return "phones/index";
+     }
+ 
++    private static String displayIdentifier(Phone phone) {
++        return phone.getPhoneLine() == null
++                ? phone.getImei()
++                : phone.getPhoneLine().getNumber();
++    }
++
+     @GetMapping("/new")
+     public String showNewPhoneForm(Model model) {
+         model.addAttribute("form", new PhoneForm());
+diff --git a/src/main/java/com/assetcontrol/shared/web/InventoryOrdering.java b/src/main/java/com/assetcontrol/shared/web/InventoryOrdering.java
+new file mode 100644
+index 0000000..e57388b
+--- /dev/null
++++ b/src/main/java/com/assetcontrol/shared/web/InventoryOrdering.java
+@@ -0,0 +1,28 @@
++package com.assetcontrol.shared.web;
++
++import java.util.Comparator;
++import java.util.List;
++
++public final class InventoryOrdering {
++
++    private InventoryOrdering() {
++    }
++
++    public static <T> List<T> apply(
++            List<T> values,
++            Comparator<T> alphabeticalComparator,
++            Comparator<T> chronologicalComparator,
++            InventorySort sort,
++            InventorySortDirection direction
++    ) {
++        Comparator<T> comparator = sort == InventorySort.CHRONOLOGICAL
++                ? chronologicalComparator
++                : alphabeticalComparator;
++
++        if (direction == InventorySortDirection.DESCENDING) {
++            comparator = comparator.reversed();
++        }
++
++        return values.stream().sorted(comparator).toList();
++    }
++}
+diff --git a/src/main/java/com/assetcontrol/shared/web/InventorySort.java b/src/main/java/com/assetcontrol/shared/web/InventorySort.java
+new file mode 100644
+index 0000000..9dfdaa8
+--- /dev/null
++++ b/src/main/java/com/assetcontrol/shared/web/InventorySort.java
+@@ -0,0 +1,16 @@
++package com.assetcontrol.shared.web;
++
++public enum InventorySort {
++    ALPHABETICAL("Alfabético"),
++    CHRONOLOGICAL("Cronológico");
++
++    private final String label;
++
++    InventorySort(String label) {
++        this.label = label;
++    }
++
++    public String getLabel() {
++        return label;
++    }
++}
+diff --git a/src/main/java/com/assetcontrol/shared/web/InventorySortDirection.java b/src/main/java/com/assetcontrol/shared/web/InventorySortDirection.java
+new file mode 100644
+index 0000000..a600e86
+--- /dev/null
++++ b/src/main/java/com/assetcontrol/shared/web/InventorySortDirection.java
+@@ -0,0 +1,16 @@
++package com.assetcontrol.shared.web;
++
++public enum InventorySortDirection {
++    ASCENDING("Ascendente"),
++    DESCENDING("Descendente");
++
++    private final String label;
++
++    InventorySortDirection(String label) {
++        this.label = label;
++    }
++
++    public String getLabel() {
++        return label;
++    }
++}
+diff --git a/src/main/resources/static/css/forms.css b/src/main/resources/static/css/forms.css
+index 98f1f2d..4bcdaa2 100644
+--- a/src/main/resources/static/css/forms.css
++++ b/src/main/resources/static/css/forms.css
+@@ -55,11 +55,15 @@
+ }
+ 
+ .filter-panel--inventory {
+-    grid-template-columns: minmax(0, 1fr) repeat(3, minmax(150px, 190px)) auto;
++    grid-template-columns: repeat(3, minmax(0, 1fr));
++}
++
++.filter-panel--inventory .filter-search {
++    grid-column: 1 / -1;
+ }
+ 
+ .filter-panel--people {
+-    grid-template-columns: minmax(0, 1fr) auto;
++    grid-template-columns: minmax(0, 1fr) repeat(2, minmax(150px, 190px)) auto;
+ }
+ 
+ .inventory-view-toggle {
+diff --git a/src/main/resources/templates/computers/index.html b/src/main/resources/templates/computers/index.html
+index 6abeea7..bc9b9de 100644
+--- a/src/main/resources/templates/computers/index.html
++++ b/src/main/resources/templates/computers/index.html
+@@ -27,12 +27,12 @@
+         <a
+                 class="inventory-view-toggle__option"
+                 th:classappend="${view == T(com.assetcontrol.shared.web.InventoryView).EQUIPMENT ? ' inventory-view-toggle__option--active' : ''}"
+-                th:href="@{/computers(view='EQUIPMENT',query=${query},status=${selectedStatus},type=${selectedType},siteId=${selectedSiteId})}"
++                th:href="@{/computers(view='EQUIPMENT',query=${query},status=${selectedStatus},type=${selectedType},siteId=${selectedSiteId},sort=${selectedSort},direction=${selectedDirection})}"
+         >Equipos</a>
+         <a
+                 class="inventory-view-toggle__option"
+                 th:classappend="${view == T(com.assetcontrol.shared.web.InventoryView).PEOPLE ? ' inventory-view-toggle__option--active' : ''}"
+-                th:href="@{/computers(view='PEOPLE',query=${query},siteId=${selectedSiteId})}"
++                th:href="@{/computers(view='PEOPLE',query=${query},siteId=${selectedSiteId},sort=${selectedSort},direction=${selectedDirection})}"
+         >Personas</a>
+     </nav>
+ 
+@@ -40,6 +40,7 @@
+         <input type="hidden" name="view" th:value="${view}">
+ 
+         <input
++                class="filter-search"
+                 type="search"
+                 name="query"
+                 th:value="${query}"
+@@ -82,6 +83,24 @@
+             ></option>
+         </select>
+ 
++        <select name="sort" aria-label="Criterio de ordenamiento">
++            <option
++                    th:each="sortOption : ${sortOptions}"
++                    th:value="${sortOption}"
++                    th:selected="${sortOption == selectedSort}"
++                    th:text="${sortOption.label}"
++            ></option>
++        </select>
++
++        <select name="direction" aria-label="Dirección del ordenamiento">
++            <option
++                    th:each="directionOption : ${directionOptions}"
++                    th:value="${directionOption}"
++                    th:selected="${directionOption == selectedDirection}"
++                    th:text="${directionOption.label}"
++            ></option>
++        </select>
++
+         <button class="secondary-button" type="submit">Filtrar</button>
+     </form>
+ 
+@@ -106,6 +125,10 @@
+                     <small th:text="${'Asset: ' + computer.asset + ' · ' + computer.site.name}">
+                         Asset · Ubicación
+                     </small>
++                    <small
++                            th:if="${selectedSort == T(com.assetcontrol.shared.web.InventorySort).CHRONOLOGICAL}"
++                            th:text="${'Registrado: ' + #temporals.format(computer.createdAt, 'dd/MM/yyyy HH:mm')}"
++                    >Registrado</small>
+ 
+                     <div
+                             class="computer-users"
+@@ -157,6 +180,10 @@
+                     <small th:text="${person.email}">correo</small>
+                     <small th:if="${person.jobTitle != null}" th:text="${person.jobTitle}">Puesto</small>
+                     <small th:if="${person.department != null}" th:text="${person.department}">Área</small>
++                    <small
++                            th:if="${selectedSort == T(com.assetcontrol.shared.web.InventorySort).CHRONOLOGICAL}"
++                            th:text="${'Registrado: ' + #temporals.format(person.createdAt, 'dd/MM/yyyy HH:mm')}"
++                    >Registrado</small>
+                     <small class="person-profile-link-label">Ver perfil completo</small>
+                 </a>
+ 
+diff --git a/src/main/resources/templates/people/index.html b/src/main/resources/templates/people/index.html
+index 1a894c7..120d479 100644
+--- a/src/main/resources/templates/people/index.html
++++ b/src/main/resources/templates/people/index.html
+@@ -20,11 +20,31 @@
+ 
+     <form class="filter-panel filter-panel--people" th:action="@{/people}" method="get">
+         <input
++                class="filter-search"
+                 type="search"
+                 name="query"
+                 th:value="${query}"
+                 placeholder="Nombre, usuario, número de empleado, correo, puesto o área"
+         >
++
++        <select name="sort" aria-label="Criterio de ordenamiento">
++            <option
++                    th:each="sortOption : ${sortOptions}"
++                    th:value="${sortOption}"
++                    th:selected="${sortOption == selectedSort}"
++                    th:text="${sortOption.label}"
++            ></option>
++        </select>
++
++        <select name="direction" aria-label="Dirección del ordenamiento">
++            <option
++                    th:each="directionOption : ${directionOptions}"
++                    th:value="${directionOption}"
++                    th:selected="${directionOption == selectedDirection}"
++                    th:text="${directionOption.label}"
++            ></option>
++        </select>
++
+         <button class="secondary-button" type="submit">Buscar</button>
+     </form>
+ 
+@@ -50,6 +70,10 @@
+                             th:if="${person.jobTitle != null or person.department != null}"
+                             th:text="${(person.jobTitle ?: 'Puesto sin registrar') + ' · ' + (person.department ?: 'Área sin registrar')}"
+                     >Puesto · Área</small>
++                    <small
++                            th:if="${selectedSort == T(com.assetcontrol.shared.web.InventorySort).CHRONOLOGICAL}"
++                            th:text="${'Registrado: ' + #temporals.format(person.createdAt, 'dd/MM/yyyy HH:mm')}"
++                    >Registrado</small>
+                 </div>
+                 <span class="person-directory-item__action">Ver perfil</span>
+             </a>
+diff --git a/src/main/resources/templates/phones/index.html b/src/main/resources/templates/phones/index.html
+index 6852475..6bcba9e 100644
+--- a/src/main/resources/templates/phones/index.html
++++ b/src/main/resources/templates/phones/index.html
+@@ -27,12 +27,12 @@
+         <a
+                 class="inventory-view-toggle__option"
+                 th:classappend="${view == T(com.assetcontrol.shared.web.InventoryView).EQUIPMENT ? ' inventory-view-toggle__option--active' : ''}"
+-                th:href="@{/phones(view='EQUIPMENT',query=${query},status=${selectedStatus},siteId=${selectedSiteId})}"
++                th:href="@{/phones(view='EQUIPMENT',query=${query},status=${selectedStatus},siteId=${selectedSiteId},sort=${selectedSort},direction=${selectedDirection})}"
+         >Teléfonos</a>
+         <a
+                 class="inventory-view-toggle__option"
+                 th:classappend="${view == T(com.assetcontrol.shared.web.InventoryView).PEOPLE ? ' inventory-view-toggle__option--active' : ''}"
+-                th:href="@{/phones(view='PEOPLE',query=${query},siteId=${selectedSiteId})}"
++                th:href="@{/phones(view='PEOPLE',query=${query},siteId=${selectedSiteId},sort=${selectedSort},direction=${selectedDirection})}"
+         >Personas</a>
+     </nav>
+ 
+@@ -40,6 +40,7 @@
+         <input type="hidden" name="view" th:value="${view}">
+ 
+         <input
++                class="filter-search"
+                 type="search"
+                 name="query"
+                 th:value="${query}"
+@@ -69,6 +70,24 @@
+             ></option>
+         </select>
+ 
++        <select name="sort" aria-label="Criterio de ordenamiento">
++            <option
++                    th:each="sortOption : ${sortOptions}"
++                    th:value="${sortOption}"
++                    th:selected="${sortOption == selectedSort}"
++                    th:text="${sortOption.label}"
++            ></option>
++        </select>
++
++        <select name="direction" aria-label="Dirección del ordenamiento">
++            <option
++                    th:each="directionOption : ${directionOptions}"
++                    th:value="${directionOption}"
++                    th:selected="${directionOption == selectedDirection}"
++                    th:text="${directionOption.label}"
++            ></option>
++        </select>
++
+         <button class="secondary-button" type="submit">Filtrar</button>
+     </form>
+ 
+@@ -94,6 +113,10 @@
+                     <strong th:text="${phone.phoneLine != null ? phone.phoneLine.number : phone.imei}">Teléfono</strong>
+                     <span th:text="${phone.brand + ' ' + phone.model}">Marca Modelo</span>
+                     <small th:text="${'IMEI: ' + phone.imei + ' · ' + phone.site.name}">IMEI · Ubicación</small>
++                    <small
++                            th:if="${selectedSort == T(com.assetcontrol.shared.web.InventorySort).CHRONOLOGICAL}"
++                            th:text="${'Registrado: ' + #temporals.format(phone.createdAt, 'dd/MM/yyyy HH:mm')}"
++                    >Registrado</small>
+ 
+                     <div
+                             class="phone-users"
+@@ -144,6 +167,10 @@
+                     <small th:text="${person.email}">correo</small>
+                     <small th:if="${person.jobTitle != null}" th:text="${person.jobTitle}">Puesto</small>
+                     <small th:if="${person.department != null}" th:text="${person.department}">Área</small>
++                    <small
++                            th:if="${selectedSort == T(com.assetcontrol.shared.web.InventorySort).CHRONOLOGICAL}"
++                            th:text="${'Registrado: ' + #temporals.format(person.createdAt, 'dd/MM/yyyy HH:mm')}"
++                    >Registrado</small>
+                     <small class="person-profile-link-label">Ver perfil completo</small>
+                 </a>
+ 
+-- 
+2.51.1
+

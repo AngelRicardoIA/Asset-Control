@@ -1,0 +1,788 @@
+From de9b44c83810aaccc73440f669be8f1dbae1f10c Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Tue, 22 Sep 2026 13:10:01 -0400
+Subject: [PATCH 2/3] feat: add people management
+
+---
+ .../application/CreatePersonCommand.java      |  15 +-
+ .../people/application/PersonService.java     |  50 +++++++
+ .../application/UpdatePersonCommand.java      |  12 ++
+ .../assetcontrol/people/domain/Person.java    |   8 ++
+ .../people/domain/PersonRepository.java       |  19 +++
+ .../people/web/PersonController.java          | 114 +++++++++++++++-
+ .../assetcontrol/people/web/PersonForm.java   | 129 ++++++++++++++++++
+ src/main/resources/static/css/forms.css       |  36 ++++-
+ .../resources/templates/computers/index.html  |   5 +
+ .../resources/templates/people/detail.html    |   7 +
+ src/main/resources/templates/people/edit.html |  30 ++++
+ .../templates/people/form-fields.html         |  48 +++++++
+ .../resources/templates/people/index.html     |  60 ++++++++
+ src/main/resources/templates/people/new.html  |  26 ++++
+ .../resources/templates/phones/index.html     |   5 +
+ 15 files changed, 560 insertions(+), 4 deletions(-)
+ create mode 100644 src/main/java/com/assetcontrol/people/application/UpdatePersonCommand.java
+ create mode 100644 src/main/java/com/assetcontrol/people/web/PersonForm.java
+ create mode 100644 src/main/resources/templates/people/edit.html
+ create mode 100644 src/main/resources/templates/people/form-fields.html
+ create mode 100644 src/main/resources/templates/people/index.html
+ create mode 100644 src/main/resources/templates/people/new.html
+
+diff --git a/src/main/java/com/assetcontrol/people/application/CreatePersonCommand.java b/src/main/java/com/assetcontrol/people/application/CreatePersonCommand.java
+index d0480e7..1356232 100644
+--- a/src/main/java/com/assetcontrol/people/application/CreatePersonCommand.java
++++ b/src/main/java/com/assetcontrol/people/application/CreatePersonCommand.java
+@@ -4,6 +4,17 @@ public record CreatePersonCommand(
+         String externalId,
+         String username,
+         String fullName,
+-        String email
++        String email,
++        String jobTitle,
++        String department,
++        String managerName
+ ) {
+-}
+\ No newline at end of file
++    public CreatePersonCommand(
++            String externalId,
++            String username,
++            String fullName,
++            String email
++    ) {
++        this(externalId, username, fullName, email, null, null, null);
++    }
++}
+diff --git a/src/main/java/com/assetcontrol/people/application/PersonService.java b/src/main/java/com/assetcontrol/people/application/PersonService.java
+index d205063..1f53e67 100644
+--- a/src/main/java/com/assetcontrol/people/application/PersonService.java
++++ b/src/main/java/com/assetcontrol/people/application/PersonService.java
+@@ -27,6 +27,10 @@ public class PersonService {
+                 .orElseThrow(() -> new PersonNotFoundException(personId));
+     }
+ 
++    public List<Person> search(String query) {
++        return personRepository.search(query == null ? "" : query.trim());
++    }
++
+     private String normalizeUsername(String value) {
+         return normalizeRequired(value, "nombre de usuario")
+                 .toLowerCase(Locale.ROOT);
+@@ -52,9 +56,46 @@ public class PersonService {
+                 normalizeEmail(command.email())
+         );
+ 
++        person.updateDetails(
++                externalId,
++                username,
++                normalizeRequired(command.fullName(), "nombre"),
++                normalizeEmail(command.email()),
++                normalizeOptional(command.jobTitle()),
++                normalizeOptional(command.department()),
++                normalizeOptional(command.managerName())
++        );
++
+         return personRepository.save(person);
+     }
+ 
++    @Transactional
++    public Person update(Long personId, UpdatePersonCommand command) {
++        Person person = findById(personId);
++        String externalId = normalizeIdentifier(command.externalId());
++        String username = normalizeUsername(command.username());
++
++        if (personRepository.existsByExternalIdIgnoreCaseAndIdNot(externalId, personId)) {
++            throw new DuplicatePersonIdentifierException(externalId);
++        }
++
++        if (personRepository.existsByUsernameIgnoreCaseAndIdNot(username, personId)) {
++            throw new DuplicatePersonUsernameException(username);
++        }
++
++        person.updateDetails(
++                externalId,
++                username,
++                normalizeRequired(command.fullName(), "nombre"),
++                normalizeEmail(command.email()),
++                normalizeOptional(command.jobTitle()),
++                normalizeOptional(command.department()),
++                normalizeOptional(command.managerName())
++        );
++
++        return person;
++    }
++
+     private String normalizeIdentifier(String value) {
+         return normalizeRequired(value, "ID").toUpperCase(Locale.ROOT);
+     }
+@@ -72,4 +113,13 @@ public class PersonService {
+ 
+         return normalized;
+     }
++
++    private String normalizeOptional(String value) {
++        if (value == null) {
++            return null;
++        }
++
++        String normalized = value.trim().replaceAll("\\s+", " ");
++        return normalized.isBlank() ? null : normalized;
++    }
+ }
+diff --git a/src/main/java/com/assetcontrol/people/application/UpdatePersonCommand.java b/src/main/java/com/assetcontrol/people/application/UpdatePersonCommand.java
+new file mode 100644
+index 0000000..42cea90
+--- /dev/null
++++ b/src/main/java/com/assetcontrol/people/application/UpdatePersonCommand.java
+@@ -0,0 +1,12 @@
++package com.assetcontrol.people.application;
++
++public record UpdatePersonCommand(
++        String externalId,
++        String username,
++        String fullName,
++        String email,
++        String jobTitle,
++        String department,
++        String managerName
++) {
++}
+diff --git a/src/main/java/com/assetcontrol/people/domain/Person.java b/src/main/java/com/assetcontrol/people/domain/Person.java
+index 6cf45bf..8c4c556 100644
+--- a/src/main/java/com/assetcontrol/people/domain/Person.java
++++ b/src/main/java/com/assetcontrol/people/domain/Person.java
+@@ -122,4 +122,12 @@ public class Person {
+     public String getManagerName() {
+         return managerName;
+     }
++
++    public LocalDateTime getCreatedAt() {
++        return createdAt;
++    }
++
++    public LocalDateTime getUpdatedAt() {
++        return updatedAt;
++    }
+ }
+diff --git a/src/main/java/com/assetcontrol/people/domain/PersonRepository.java b/src/main/java/com/assetcontrol/people/domain/PersonRepository.java
+index 906a7fa..e2478c4 100644
+--- a/src/main/java/com/assetcontrol/people/domain/PersonRepository.java
++++ b/src/main/java/com/assetcontrol/people/domain/PersonRepository.java
+@@ -1,6 +1,8 @@
+ package com.assetcontrol.people.domain;
+ 
+ import org.springframework.data.jpa.repository.JpaRepository;
++import org.springframework.data.jpa.repository.Query;
++import org.springframework.data.repository.query.Param;
+ 
+ import java.util.List;
+ import java.util.Optional;
+@@ -9,7 +11,24 @@ public interface PersonRepository extends JpaRepository<Person, Long> {
+ 
+     boolean existsByExternalIdIgnoreCase(String externalId);
+     boolean existsByUsernameIgnoreCase(String username);
++    boolean existsByExternalIdIgnoreCaseAndIdNot(String externalId, Long id);
++    boolean existsByUsernameIgnoreCaseAndIdNot(String username, Long id);
+     List<Person> findAllByOrderByFullNameAsc();
+     Optional<Person> findByExternalIdIgnoreCase(String externalId);
+     Optional<Person> findByUsernameIgnoreCase(String username);
++
++    @Query("""
++            SELECT person
++            FROM Person person
++            WHERE :query = ''
++            OR LOWER(person.externalId) LIKE LOWER(CONCAT('%', :query, '%'))
++            OR LOWER(person.username) LIKE LOWER(CONCAT('%', :query, '%'))
++            OR LOWER(person.fullName) LIKE LOWER(CONCAT('%', :query, '%'))
++            OR LOWER(person.email) LIKE LOWER(CONCAT('%', :query, '%'))
++            OR LOWER(COALESCE(person.jobTitle, '')) LIKE LOWER(CONCAT('%', :query, '%'))
++            OR LOWER(COALESCE(person.department, '')) LIKE LOWER(CONCAT('%', :query, '%'))
++            OR LOWER(COALESCE(person.managerName, '')) LIKE LOWER(CONCAT('%', :query, '%'))
++            ORDER BY person.fullName, person.username
++            """)
++    List<Person> search(@Param("query") String query);
+ }
+diff --git a/src/main/java/com/assetcontrol/people/web/PersonController.java b/src/main/java/com/assetcontrol/people/web/PersonController.java
+index ace8ab0..92fc90f 100644
+--- a/src/main/java/com/assetcontrol/people/web/PersonController.java
++++ b/src/main/java/com/assetcontrol/people/web/PersonController.java
+@@ -1,20 +1,84 @@
+ package com.assetcontrol.people.web;
+ 
++import com.assetcontrol.people.application.DuplicatePersonIdentifierException;
++import com.assetcontrol.people.application.DuplicatePersonUsernameException;
+ import com.assetcontrol.people.application.PersonProfileService;
++import com.assetcontrol.people.application.PersonService;
++import jakarta.validation.Valid;
+ import org.springframework.stereotype.Controller;
+ import org.springframework.ui.Model;
++import org.springframework.validation.BindingResult;
+ import org.springframework.web.bind.annotation.GetMapping;
++import org.springframework.web.bind.annotation.ModelAttribute;
+ import org.springframework.web.bind.annotation.PathVariable;
++import org.springframework.web.bind.annotation.PostMapping;
+ import org.springframework.web.bind.annotation.RequestMapping;
++import org.springframework.web.bind.annotation.RequestParam;
++import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+ 
+ @Controller
+ @RequestMapping("/people")
+ public class PersonController {
+ 
+     private final PersonProfileService personProfileService;
++    private final PersonService personService;
+ 
+-    public PersonController(PersonProfileService personProfileService) {
++    public PersonController(
++            PersonProfileService personProfileService,
++            PersonService personService
++    ) {
+         this.personProfileService = personProfileService;
++        this.personService = personService;
++    }
++
++    @GetMapping
++    public String showPeople(
++            @RequestParam(defaultValue = "") String query,
++            Model model
++    ) {
++        model.addAttribute("people", personService.search(query));
++        model.addAttribute("query", query);
++        return "people/index";
++    }
++
++    @GetMapping("/new")
++    public String showNewPersonForm(Model model) {
++        model.addAttribute("form", new PersonForm());
++        return "people/new";
++    }
++
++    @PostMapping
++    public String createPerson(
++            @Valid @ModelAttribute("form") PersonForm form,
++            BindingResult bindingResult,
++            RedirectAttributes redirectAttributes
++    ) {
++        if (bindingResult.hasErrors()) {
++            return "people/new";
++        }
++
++        try {
++            var person = personService.create(form.toCreateCommand());
++            redirectAttributes.addFlashAttribute(
++                    "successMessage",
++                    "Persona registrada correctamente."
++            );
++            return "redirect:/people/" + person.getId();
++        } catch (DuplicatePersonIdentifierException exception) {
++            bindingResult.rejectValue(
++                    "externalId",
++                    "person.externalId.duplicate",
++                    exception.getMessage()
++            );
++        } catch (DuplicatePersonUsernameException exception) {
++            bindingResult.rejectValue(
++                    "username",
++                    "person.username.duplicate",
++                    exception.getMessage()
++            );
++        }
++
++        return "people/new";
+     }
+ 
+     @GetMapping("/{personId}")
+@@ -23,4 +87,52 @@ public class PersonController {
+ 
+         return "people/detail";
+     }
++
++    @GetMapping("/{personId}/edit")
++    public String showEditPersonForm(
++            @PathVariable Long personId,
++            Model model
++    ) {
++        model.addAttribute("personId", personId);
++        model.addAttribute("form", PersonForm.from(personService.findById(personId)));
++        return "people/edit";
++    }
++
++    @PostMapping("/{personId}")
++    public String updatePerson(
++            @PathVariable Long personId,
++            @Valid @ModelAttribute("form") PersonForm form,
++            BindingResult bindingResult,
++            Model model,
++            RedirectAttributes redirectAttributes
++    ) {
++        if (bindingResult.hasErrors()) {
++            model.addAttribute("personId", personId);
++            return "people/edit";
++        }
++
++        try {
++            personService.update(personId, form.toUpdateCommand());
++            redirectAttributes.addFlashAttribute(
++                    "successMessage",
++                    "Persona actualizada correctamente."
++            );
++            return "redirect:/people/" + personId;
++        } catch (DuplicatePersonIdentifierException exception) {
++            bindingResult.rejectValue(
++                    "externalId",
++                    "person.externalId.duplicate",
++                    exception.getMessage()
++            );
++        } catch (DuplicatePersonUsernameException exception) {
++            bindingResult.rejectValue(
++                    "username",
++                    "person.username.duplicate",
++                    exception.getMessage()
++            );
++        }
++
++        model.addAttribute("personId", personId);
++        return "people/edit";
++    }
+ }
+diff --git a/src/main/java/com/assetcontrol/people/web/PersonForm.java b/src/main/java/com/assetcontrol/people/web/PersonForm.java
+new file mode 100644
+index 0000000..0f6457f
+--- /dev/null
++++ b/src/main/java/com/assetcontrol/people/web/PersonForm.java
+@@ -0,0 +1,129 @@
++package com.assetcontrol.people.web;
++
++import com.assetcontrol.people.application.CreatePersonCommand;
++import com.assetcontrol.people.application.UpdatePersonCommand;
++import com.assetcontrol.people.domain.Person;
++import jakarta.validation.constraints.Email;
++import jakarta.validation.constraints.NotBlank;
++import jakarta.validation.constraints.Size;
++
++public class PersonForm {
++
++    @NotBlank(message = "El número de empleado es obligatorio.")
++    @Size(max = 100, message = "El número de empleado no puede superar 100 caracteres.")
++    private String externalId;
++
++    @NotBlank(message = "El nombre de usuario es obligatorio.")
++    @Size(max = 100, message = "El nombre de usuario no puede superar 100 caracteres.")
++    private String username;
++
++    @NotBlank(message = "El nombre completo es obligatorio.")
++    @Size(max = 150, message = "El nombre no puede superar 150 caracteres.")
++    private String fullName;
++
++    @NotBlank(message = "El correo es obligatorio.")
++    @Email(message = "Escribe un correo válido.")
++    @Size(max = 254, message = "El correo no puede superar 254 caracteres.")
++    private String email;
++
++    @Size(max = 150, message = "El puesto no puede superar 150 caracteres.")
++    private String jobTitle;
++
++    @Size(max = 150, message = "El área no puede superar 150 caracteres.")
++    private String department;
++
++    @Size(max = 150, message = "El nombre del gerente no puede superar 150 caracteres.")
++    private String managerName;
++
++    public static PersonForm from(Person person) {
++        PersonForm form = new PersonForm();
++        form.setExternalId(person.getExternalId());
++        form.setUsername(person.getUsername());
++        form.setFullName(person.getFullName());
++        form.setEmail(person.getEmail());
++        form.setJobTitle(person.getJobTitle());
++        form.setDepartment(person.getDepartment());
++        form.setManagerName(person.getManagerName());
++        return form;
++    }
++
++    public CreatePersonCommand toCreateCommand() {
++        return new CreatePersonCommand(
++                externalId,
++                username,
++                fullName,
++                email,
++                jobTitle,
++                department,
++                managerName
++        );
++    }
++
++    public UpdatePersonCommand toUpdateCommand() {
++        return new UpdatePersonCommand(
++                externalId,
++                username,
++                fullName,
++                email,
++                jobTitle,
++                department,
++                managerName
++        );
++    }
++
++    public String getExternalId() {
++        return externalId;
++    }
++
++    public void setExternalId(String externalId) {
++        this.externalId = externalId;
++    }
++
++    public String getUsername() {
++        return username;
++    }
++
++    public void setUsername(String username) {
++        this.username = username;
++    }
++
++    public String getFullName() {
++        return fullName;
++    }
++
++    public void setFullName(String fullName) {
++        this.fullName = fullName;
++    }
++
++    public String getEmail() {
++        return email;
++    }
++
++    public void setEmail(String email) {
++        this.email = email;
++    }
++
++    public String getJobTitle() {
++        return jobTitle;
++    }
++
++    public void setJobTitle(String jobTitle) {
++        this.jobTitle = jobTitle;
++    }
++
++    public String getDepartment() {
++        return department;
++    }
++
++    public void setDepartment(String department) {
++        this.department = department;
++    }
++
++    public String getManagerName() {
++        return managerName;
++    }
++
++    public void setManagerName(String managerName) {
++        this.managerName = managerName;
++    }
++}
+diff --git a/src/main/resources/static/css/forms.css b/src/main/resources/static/css/forms.css
+index e3bda38..98f1f2d 100644
+--- a/src/main/resources/static/css/forms.css
++++ b/src/main/resources/static/css/forms.css
+@@ -58,6 +58,10 @@
+     grid-template-columns: minmax(0, 1fr) repeat(3, minmax(150px, 190px)) auto;
+ }
+ 
++.filter-panel--people {
++    grid-template-columns: minmax(0, 1fr) auto;
++}
++
+ .inventory-view-toggle {
+     display: inline-flex;
+     gap: 0.35rem;
+@@ -187,6 +191,35 @@
+     gap: 1rem;
+ }
+ 
++.person-directory-list {
++    display: grid;
++    gap: 0.8rem;
++}
++
++.person-directory-item {
++    align-items: center;
++    display: flex;
++    justify-content: space-between;
++    gap: 1rem;
++    border-radius: 1rem;
++    box-shadow: var(--shadow-pressed);
++    color: inherit;
++    padding: 1rem 1.1rem;
++    text-decoration: none;
++    transition: box-shadow 160ms ease, transform 160ms ease;
++}
++
++.person-directory-item:hover {
++    box-shadow: var(--shadow-raised);
++    transform: translateY(-2px);
++}
++
++.person-directory-item__action {
++    color: var(--accent);
++    font-size: 0.85rem;
++    font-weight: 700;
++}
++
+ .person-item {
+     display: grid;
+     grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.2fr);
+@@ -749,7 +782,8 @@
+     .page-heading,
+     .computer-item,
+     .phone-item,
+-    .site-item {
++    .site-item,
++    .person-directory-item {
+         align-items: stretch;
+         flex-direction: column;
+     }
+diff --git a/src/main/resources/templates/computers/index.html b/src/main/resources/templates/computers/index.html
+index 17d876e..6abeea7 100644
+--- a/src/main/resources/templates/computers/index.html
++++ b/src/main/resources/templates/computers/index.html
+@@ -12,6 +12,11 @@
+             <p>Consulta, filtra y administra laptops y equipos de escritorio.</p>
+         </div>
+         <div class="page-actions">
++            <a
++                    class="secondary-button"
++                    th:if="${view == T(com.assetcontrol.shared.web.InventoryView).PEOPLE}"
++                    th:href="@{/people}"
++            >Administrar personas</a>
+             <a class="secondary-button" th:href="@{/inventory/export}">Exportar</a>
+             <a class="secondary-button" th:href="@{/assignment-imports/computers}">Importar</a>
+             <a class="primary-button" th:href="@{/computers/new}">Nuevo equipo</a>
+diff --git a/src/main/resources/templates/people/detail.html b/src/main/resources/templates/people/detail.html
+index 9aee5ba..90adedb 100644
+--- a/src/main/resources/templates/people/detail.html
++++ b/src/main/resources/templates/people/detail.html
+@@ -13,11 +13,18 @@
+         </div>
+ 
+         <div class="page-actions">
++            <a class="secondary-button" th:href="@{/people}">Volver a personas</a>
+             <a class="secondary-button" th:href="@{/computers(view='PEOPLE')}">Ver equipos</a>
+             <a class="secondary-button" th:href="@{/phones(view='PEOPLE')}">Ver teléfonos</a>
++            <a
++                    class="primary-button"
++                    th:href="@{/people/{personId}/edit(personId=${profile.person.id})}"
++            >Editar persona</a>
+         </div>
+     </section>
+ 
++    <p class="alert alert--success" th:if="${successMessage}" th:text="${successMessage}"></p>
++
+     <section class="detail-grid">
+         <article class="detail-card">
+             <span>Nombre de usuario</span>
+diff --git a/src/main/resources/templates/people/edit.html b/src/main/resources/templates/people/edit.html
+new file mode 100644
+index 0000000..9e2bb98
+--- /dev/null
++++ b/src/main/resources/templates/people/edit.html
+@@ -0,0 +1,30 @@
++<!DOCTYPE html>
++<html lang="es" xmlns:th="https://www.thymeleaf.org">
++<head th:replace="~{fragments/document-head :: head('Editar persona')}"></head>
++<body>
++<header th:replace="~{fragments/app-header :: header}"></header>
++
++<main class="page-content narrow-content">
++    <section class="page-heading">
++        <div>
++            <p class="eyebrow">Personas</p>
++            <h1>Editar persona</h1>
++            <p>Actualiza los datos sin alterar su historial de activos.</p>
++        </div>
++    </section>
++
++    <form
++            class="form-panel"
++            th:action="@{/people/{personId}(personId=${personId})}"
++            method="post"
++    >
++        <div th:replace="~{people/form-fields :: fields(${form})}"></div>
++
++        <div class="form-actions">
++            <a class="secondary-button" th:href="@{/people/{personId}(personId=${personId})}">Cancelar</a>
++            <button class="primary-button" type="submit">Guardar cambios</button>
++        </div>
++    </form>
++</main>
++</body>
++</html>
+diff --git a/src/main/resources/templates/people/form-fields.html b/src/main/resources/templates/people/form-fields.html
+new file mode 100644
+index 0000000..de09f05
+--- /dev/null
++++ b/src/main/resources/templates/people/form-fields.html
+@@ -0,0 +1,48 @@
++<!DOCTYPE html>
++<html lang="es" xmlns:th="https://www.thymeleaf.org">
++<body>
++<div class="field-grid" th:fragment="fields(personForm)" th:object="${personForm}">
++    <div class="form-field">
++        <label for="externalId">Número de empleado</label>
++        <input id="externalId" type="text" th:field="*{externalId}" maxlength="100" required>
++        <small class="form-error" th:errors="*{externalId}"></small>
++    </div>
++
++    <div class="form-field">
++        <label for="username">Nombre de usuario</label>
++        <input id="username" type="text" th:field="*{username}" maxlength="100" required>
++        <small class="form-error" th:errors="*{username}"></small>
++    </div>
++
++    <div class="form-field full-width">
++        <label for="fullName">Nombre completo</label>
++        <input id="fullName" type="text" th:field="*{fullName}" maxlength="150" required>
++        <small class="form-error" th:errors="*{fullName}"></small>
++    </div>
++
++    <div class="form-field full-width">
++        <label for="email">Correo</label>
++        <input id="email" type="email" th:field="*{email}" maxlength="254" required>
++        <small class="form-error" th:errors="*{email}"></small>
++    </div>
++
++    <div class="form-field">
++        <label for="jobTitle">Puesto</label>
++        <input id="jobTitle" type="text" th:field="*{jobTitle}" maxlength="150">
++        <small class="form-error" th:errors="*{jobTitle}"></small>
++    </div>
++
++    <div class="form-field">
++        <label for="department">Área o departamento</label>
++        <input id="department" type="text" th:field="*{department}" maxlength="150">
++        <small class="form-error" th:errors="*{department}"></small>
++    </div>
++
++    <div class="form-field full-width">
++        <label for="managerName">Gerente</label>
++        <input id="managerName" type="text" th:field="*{managerName}" maxlength="150">
++        <small class="form-error" th:errors="*{managerName}"></small>
++    </div>
++</div>
++</body>
++</html>
+diff --git a/src/main/resources/templates/people/index.html b/src/main/resources/templates/people/index.html
+new file mode 100644
+index 0000000..1a894c7
+--- /dev/null
++++ b/src/main/resources/templates/people/index.html
+@@ -0,0 +1,60 @@
++<!DOCTYPE html>
++<html lang="es" xmlns:th="https://www.thymeleaf.org">
++<head th:replace="~{fragments/document-head :: head('Personas')}"></head>
++<body>
++<header th:replace="~{fragments/app-header :: header}"></header>
++
++<main class="page-content">
++    <section class="page-heading">
++        <div>
++            <p class="eyebrow">Administración</p>
++            <h1>Personas</h1>
++            <p>Consulta y administra las personas relacionadas con los activos.</p>
++        </div>
++        <div class="page-actions">
++            <a class="secondary-button" th:href="@{/computers(view='PEOPLE')}">Ver por equipos</a>
++            <a class="secondary-button" th:href="@{/phones(view='PEOPLE')}">Ver por teléfonos</a>
++            <a class="primary-button" th:href="@{/people/new}">Nueva persona</a>
++        </div>
++    </section>
++
++    <form class="filter-panel filter-panel--people" th:action="@{/people}" method="get">
++        <input
++                type="search"
++                name="query"
++                th:value="${query}"
++                placeholder="Nombre, usuario, número de empleado, correo, puesto o área"
++        >
++        <button class="secondary-button" type="submit">Buscar</button>
++    </form>
++
++    <p class="alert alert--success" th:if="${successMessage}" th:text="${successMessage}"></p>
++
++    <section class="inventory-panel">
++        <div class="empty-state" th:if="${#lists.isEmpty(people)}">
++            <h2>No se encontraron personas</h2>
++            <p>Registra una persona o ajusta la búsqueda.</p>
++        </div>
++
++        <div class="person-directory-list" th:unless="${#lists.isEmpty(people)}">
++            <a
++                    class="person-directory-item"
++                    th:each="person : ${people}"
++                    th:href="@{/people/{personId}(personId=${person.id})}"
++            >
++                <div class="person-main-data">
++                    <strong th:text="${person.fullName}">Nombre completo</strong>
++                    <span th:text="${person.username + ' · ' + person.externalId}">usuario · ID</span>
++                    <small th:text="${person.email}">correo</small>
++                    <small
++                            th:if="${person.jobTitle != null or person.department != null}"
++                            th:text="${(person.jobTitle ?: 'Puesto sin registrar') + ' · ' + (person.department ?: 'Área sin registrar')}"
++                    >Puesto · Área</small>
++                </div>
++                <span class="person-directory-item__action">Ver perfil</span>
++            </a>
++        </div>
++    </section>
++</main>
++</body>
++</html>
+diff --git a/src/main/resources/templates/people/new.html b/src/main/resources/templates/people/new.html
+new file mode 100644
+index 0000000..636c5e1
+--- /dev/null
++++ b/src/main/resources/templates/people/new.html
+@@ -0,0 +1,26 @@
++<!DOCTYPE html>
++<html lang="es" xmlns:th="https://www.thymeleaf.org">
++<head th:replace="~{fragments/document-head :: head('Nueva persona')}"></head>
++<body>
++<header th:replace="~{fragments/app-header :: header}"></header>
++
++<main class="page-content narrow-content">
++    <section class="page-heading">
++        <div>
++            <p class="eyebrow">Personas</p>
++            <h1>Nueva persona</h1>
++            <p>Registra sus datos principales para futuras asignaciones.</p>
++        </div>
++    </section>
++
++    <form class="form-panel" th:action="@{/people}" method="post">
++        <div th:replace="~{people/form-fields :: fields(${form})}"></div>
++
++        <div class="form-actions">
++            <a class="secondary-button" th:href="@{/people}">Cancelar</a>
++            <button class="primary-button" type="submit">Guardar persona</button>
++        </div>
++    </form>
++</main>
++</body>
++</html>
+diff --git a/src/main/resources/templates/phones/index.html b/src/main/resources/templates/phones/index.html
+index a9f27d9..6852475 100644
+--- a/src/main/resources/templates/phones/index.html
++++ b/src/main/resources/templates/phones/index.html
+@@ -12,6 +12,11 @@
+             <p>Equipos móviles y líneas disponibles.</p>
+         </div>
+         <div class="page-actions">
++            <a
++                    class="secondary-button"
++                    th:if="${view == T(com.assetcontrol.shared.web.InventoryView).PEOPLE}"
++                    th:href="@{/people}"
++            >Administrar personas</a>
+             <a class="secondary-button" th:href="@{/inventory/export}">Exportar</a>
+             <a class="secondary-button" th:href="@{/assignment-imports/phones}">Importar</a>
+             <a class="primary-button" th:href="@{/phones/new}">Nuevo teléfono</a>
+-- 
+2.51.1
+
