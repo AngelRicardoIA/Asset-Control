@@ -114,6 +114,14 @@
     outline-offset: 3px;
 }
 
+.inventory-navigation {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
 .inventory-view-toggle {
     display: inline-flex;
     gap: 0.35rem;
@@ -1024,6 +1032,11 @@
 }
 
 @media (max-width: 560px) {
+    .inventory-navigation {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
     .filter-panel__search,
     .filter-panel__options,
     .filter-panel--phones .filter-panel__options,

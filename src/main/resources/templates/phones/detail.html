@@ -12,22 +12,41 @@
             <p th:text="${phone.brand + ' ' + phone.model}">Marca Modelo</p>
         </div>
 
-        <div class="page-actions">
-            <a class="secondary-button" th:href="@{/phones}">Volver al inventario</a>
+        <nav class="action-toolbar" aria-label="Acciones del teléfono">
             <a
-                    class="secondary-button"
+                    class="icon-action"
+                    th:href="@{/phones}"
+                    aria-label="Volver al inventario"
+                    data-tooltip="Volver al inventario"
+            >
+                <svg th:replace="~{fragments/icons :: arrowLeft}"></svg>
+            </a>
+            <a
+                    class="icon-action"
                     th:href="@{/phones/{phoneId}/edit(phoneId=${phone.id})}"
-            >Editar teléfono</a>
+                    aria-label="Editar teléfono"
+                    data-tooltip="Editar teléfono"
+            >
+                <svg th:replace="~{fragments/icons :: pencil}"></svg>
+            </a>
             <a
-                    class="primary-button"
+                    class="icon-action"
                     th:href="@{/phones/{phoneId}/maintenance/new(phoneId=${phone.id})}"
-            >Registrar mantenimiento</a>
+                    aria-label="Registrar mantenimiento"
+                    data-tooltip="Registrar mantenimiento"
+            >
+                <svg th:replace="~{fragments/icons :: maintenance}"></svg>
+            </a>
             <a
-                    class="primary-button"
+                    class="icon-action icon-action--primary"
                     th:if="${phone.status != T(com.assetcontrol.phones.domain.PhoneStatus).RETIRED}"
                     th:href="@{/phones/{phoneId}/assignments/new(phoneId=${phone.id})}"
-            >Asignar teléfono</a>
-        </div>
+                    aria-label="Asignar teléfono"
+                    data-tooltip="Asignar teléfono"
+            >
+                <svg th:replace="~{fragments/icons :: userPlus}"></svg>
+            </a>
+        </nav>
     </section>
 
     <p class="alert alert--success" th:if="${successMessage}" th:text="${successMessage}"></p>
