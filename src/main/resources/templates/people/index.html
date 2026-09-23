@@ -11,11 +11,20 @@
             <h1>Personas</h1>
             <p>Consulta y administra las personas relacionadas con los activos.</p>
         </div>
-        <div class="page-actions">
-            <a class="secondary-button" th:href="@{/computers(view='PEOPLE')}">Ver por equipos</a>
-            <a class="secondary-button" th:href="@{/phones(view='PEOPLE')}">Ver por teléfonos</a>
-            <a class="primary-button" th:href="@{/people/new}">Nueva persona</a>
-        </div>
+        <nav class="action-toolbar" aria-label="Acciones de personas">
+            <a class="icon-action" th:href="@{/computers(view='PEOPLE')}"
+               aria-label="Ver personas por equipos" data-tooltip="Por equipos">
+                <svg th:replace="~{fragments/icons :: computer}"></svg>
+            </a>
+            <a class="icon-action" th:href="@{/phones(view='PEOPLE')}"
+               aria-label="Ver personas por teléfonos" data-tooltip="Por teléfonos">
+                <svg th:replace="~{fragments/icons :: phone}"></svg>
+            </a>
+            <a class="icon-action icon-action--primary" th:href="@{/people/new}"
+               aria-label="Nueva persona" data-tooltip="Nueva persona">
+                <svg th:replace="~{fragments/icons :: plus}"></svg>
+            </a>
+        </nav>
     </section>
 
     <form class="filter-panel filter-panel--people" th:action="@{/people}" method="get">
@@ -83,7 +92,9 @@
                             th:text="${'Registrado: ' + #temporals.format(person.createdAt, 'dd/MM/yyyy HH:mm')}"
                     >Registrado</small>
                 </div>
-                <span class="person-directory-item__action">Ver perfil</span>
+                <span class="person-directory-item__action" aria-hidden="true">
+                    <svg th:replace="~{fragments/icons :: arrowRight}"></svg>
+                </span>
             </a>
         </div>
         <div th:replace="~{fragments/pagination :: controls('/people')}"></div>

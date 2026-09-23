@@ -320,6 +320,47 @@ a.pagination__link:hover {
     padding: 0 0.2rem;
 }
 
+[data-history-item][hidden] { display: none !important; }
+
+.history-pages {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: .45rem;
+    margin-top: 1.25rem;
+}
+
+.history-pages__summary {
+    color: var(--text-muted);
+    font-size: .85rem;
+    margin-right: auto;
+}
+
+.history-pages button.pagination__link {
+    border: 0;
+    cursor: pointer;
+    font: inherit;
+    font-size: .85rem;
+    font-weight: 700;
+}
+
+.history-pages button.pagination__link:hover:not(:disabled) {
+    box-shadow: var(--shadow-raised);
+    transform: translateY(-2px);
+}
+
+.history-pages button.pagination__link:disabled {
+    opacity: .45;
+    cursor: default;
+    box-shadow: none;
+}
+
+.history-pages button.pagination__link--current {
+    background: var(--color-accent);
+    color: #fff;
+}
+
 .computer-list,
 .site-list,
 .phone-list {
@@ -356,9 +397,24 @@ a.pagination__link:hover {
 }
 
 .person-directory-item__action {
-    color: var(--accent);
-    font-size: 0.85rem;
-    font-weight: 700;
+    display: inline-grid;
+    width: 2.6rem;
+    height: 2.6rem;
+    flex: 0 0 2.6rem;
+    place-items: center;
+    border-radius: .8rem;
+    box-shadow: var(--shadow-raised-small);
+    color: var(--text-primary);
+}
+
+.person-directory-item__action svg {
+    width: 1.2rem;
+    height: 1.2rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.9;
 }
 
 .person-item {
@@ -804,6 +860,7 @@ a.pagination__link:hover {
 .person-profile-asset-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
     gap: 1rem;
 }
 
@@ -811,6 +868,36 @@ a.pagination__link:hover {
 .person-profile-asset-list {
     display: grid;
     gap: 0.8rem;
+}
+
+.person-profile-group { align-content: start; }
+
+.person-profile-group--accessories { grid-column: 1 / -1; }
+
+.person-profile-group__heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.person-profile-group__heading p {
+    margin: .2rem 0 0;
+    color: var(--text-muted);
+    font-size: .85rem;
+}
+
+.person-profile-asset-list--accessories {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: start;
+}
+
+.person-profile-asset--accessory { min-width: 0; }
+
+.person-profile-asset--accessory .person-profile-asset__main { min-width: 0; }
+
+.person-profile-asset--accessory :is(strong, span, small) {
+    overflow-wrap: anywhere;
 }
 
 .person-profile-group h3 {
@@ -1070,6 +1157,8 @@ a.pagination__link:hover {
         grid-template-columns: 1fr;
     }
 
+    .person-profile-asset-list--accessories { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
     .form-actions {
         flex-direction: column-reverse;
     }
@@ -1104,6 +1193,7 @@ a.pagination__link:hover {
 }
 
 @media (max-width: 560px) {
+    .person-profile-asset-list--accessories { grid-template-columns: 1fr; }
     .inventory-navigation {
         align-items: flex-start;
         flex-direction: column;

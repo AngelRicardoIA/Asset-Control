@@ -30,14 +30,6 @@
                 <svg th:replace="~{fragments/icons :: pencil}"></svg>
             </a>
             <a
-                    class="icon-action"
-                    th:href="@{/computers/{computerId}/maintenance/new(computerId=${computer.id})}"
-                    aria-label="Registrar mantenimiento"
-                    data-tooltip="Registrar mantenimiento"
-            >
-                <svg th:replace="~{fragments/icons :: maintenance}"></svg>
-            </a>
-            <a
                     class="icon-action icon-action--primary"
                     th:href="@{/computers/{computerId}/assignments/new(computerId=${computer.id})}"
                     aria-label="Asignar equipo"
@@ -119,8 +111,8 @@
             <p>Este equipo todavía no tiene movimientos registrados.</p>
         </div>
 
-        <div class="assignment-list" th:unless="${#lists.isEmpty(assignments)}">
-            <article class="assignment-item" th:each="assignment : ${assignments}"
+        <div class="assignment-list" data-history-list data-history-label="Asignaciones del equipo" th:unless="${#lists.isEmpty(assignments)}">
+            <article class="assignment-item" data-history-item th:each="assignment : ${assignments}"
                      th:classappend="${!assignment.active ? ' assignment-item--returned' : ''}"
                      th:id="${'asignacion-' + assignment.id}">
                 <div class="assignment-person">
@@ -160,25 +152,23 @@
                             th:text="${'Devuelto: ' + #temporals.format(assignment.returnedAt, 'dd/MM/yyyy')}"
                     >Devuelto</small>
 
-                    <div class="assignment-actions" th:if="${assignment.active}">
-                        <a
-                                class="primary-button button-info"
-                                title="Generar y descargar responsiva en Word"
-                                th:href="@{/computers/{computerId}/assignments/{assignmentId}/responsiva.docx(computerId=${computer.id}, assignmentId=${assignment.id})}"
-                        >Responsiva</a>
-
-                        <button class="secondary-button" type="button" data-label-open
+                    <div class="assignment-actions action-toolbar" th:if="${assignment.active}" aria-label="Acciones de la asignación">
+                        <a class="icon-action icon-action--info"
+                           th:href="@{/computers/{computerId}/assignments/{assignmentId}/responsiva.docx(computerId=${computer.id}, assignmentId=${assignment.id})}"
+                           aria-label="Descargar responsiva" data-tooltip="Responsiva">
+                            <svg th:replace="~{fragments/icons :: fileText}"></svg>
+                        </a>
+                        <button class="icon-action" type="button" data-label-open
                                 aria-haspopup="dialog" aria-controls="assignment-label-dialog"
+                                aria-label="Imprimir etiqueta" data-tooltip="Etiqueta"
                                 th:attr="data-label-url=@{/computers/{computerId}/assignments/{assignmentId}/label(computerId=${computer.id}, assignmentId=${assignment.id})}">
-                            Etiqueta
+                            <svg th:replace="~{fragments/icons :: tag}"></svg>
                         </button>
-
-                        <button
-                                class="primary-button"
-                                type="button"
-                                data-return-open
-                                th:attr="data-return-action=@{/computers/{computerId}/assignments/{assignmentId}/close(computerId=${computer.id}, assignmentId=${assignment.id})},data-return-asset=${computer.host + ' · Asset ' + computer.asset},data-return-person=${assignment.person.username + ' · ' + assignment.person.fullName}"
-                        >Devolver</button>
+                        <button class="icon-action icon-action--primary" type="button" data-return-open
+                                aria-label="Devolver equipo" data-tooltip="Devolver"
+                                th:attr="data-return-action=@{/computers/{computerId}/assignments/{assignmentId}/close(computerId=${computer.id}, assignmentId=${assignment.id})},data-return-asset=${computer.host + ' · Asset ' + computer.asset},data-return-person=${assignment.person.username + ' · ' + assignment.person.fullName}">
+                            <svg th:replace="~{fragments/icons :: returnAsset}"></svg>
+                        </button>
                     </div>
 
                 </div>
@@ -187,33 +177,55 @@
     </section>
 
     <section class="form-panel maintenance-history" id="mantenimiento">
-        <div class="maintenance-detail" th:if="${maintenanceDue != null}">
-            <span class="status-badge" th:classappend="${' maintenance-due--' + maintenanceDue.status.name().toLowerCase()}" th:text="${'Mantenimiento: ' + maintenanceDue.status.label}">Mantenimiento</span>
-            <p th:text="${'Próxima revisión: ' + #temporals.format(maintenanceDue.nextDueAt, 'dd/MM/yyyy')}">Próxima revisión</p>
-            <a class="secondary-button" th:href="@{/computers/{id}/maintenance/preventive/new(id=${computer.id})}">Registrar revisión</a>
-            <a class="secondary-button" th:href="@{/maintenance/computers/{id}/schedule(id=${computer.id})}">Reprogramar</a>
-        </div>
-        <div class="section-heading">
+        <div class="section-heading maintenance-panel__heading">
             <div>
                 <h2>Mantenimientos e historial técnico</h2>
-                <p>Revisiones, reparaciones, cambios de componente y notas registradas.</p>
+                <p>Revisiones, reparaciones y cambios de componente.</p>
+            </div>
+            <nav class="action-toolbar" aria-label="Acciones de mantenimiento">
+                <a class="icon-action" th:href="@{/computers/{id}/maintenance/new(id=${computer.id})}"
+                   aria-label="Registrar nota o reparación" data-tooltip="Registro técnico">
+                    <svg th:replace="~{fragments/icons :: maintenance}"></svg>
+                </a>
+                <a class="icon-action" th:if="${maintenanceDue != null}"
+                   th:href="@{/maintenance/computers/{id}/schedule(id=${computer.id})}"
+                   aria-label="Reprogramar revisión" data-tooltip="Reprogramar">
+                    <svg th:replace="~{fragments/icons :: calendarClock}"></svg>
+                </a>
+                <a class="icon-action icon-action--primary" th:if="${maintenanceDue != null}"
+                   th:href="@{/computers/{id}/maintenance/preventive/new(id=${computer.id})}"
+                   aria-label="Registrar revisión preventiva" data-tooltip="Registrar revisión">
+                    <svg th:replace="~{fragments/icons :: calendarCheck}"></svg>
+                </a>
+            </nav>
+        </div>
+
+        <div class="maintenance-status-strip" th:if="${maintenanceDue != null}">
+            <span class="status-badge" th:classappend="${' maintenance-due--' + maintenanceDue.status.name().toLowerCase()}"
+                  th:text="${maintenanceDue.status.label}">Al día</span>
+            <div>
+                <strong th:text="${'Próxima revisión: ' + #temporals.format(maintenanceDue.nextDueAt, 'dd/MM/yyyy')}">Próxima revisión</strong>
+                <small th:text="${'Última: ' + (maintenanceDue.lastPreventiveAt == null ? 'Sin registrar' : #temporals.format(maintenanceDue.lastPreventiveAt, 'dd/MM/yyyy'))}">Última</small>
             </div>
         </div>
 
         <details class="maintenance-schedule-log" th:if="${!#lists.isEmpty(maintenanceScheduleHistory)}">
-            <summary>Historial de fechas programadas</summary>
-            <div th:each="change : ${maintenanceScheduleHistory}">
-                <strong th:text="${#temporals.format(change.nextDueAt, 'dd/MM/yyyy')}">Fecha</strong>
-                <span th:text="${change.reason + ' · ' + change.recordedBy}">Motivo · Responsable</span>
+            <summary>Fechas programadas</summary>
+            <div class="maintenance-schedule-log__list" data-history-list data-history-label="Fechas de mantenimiento">
+                <div data-history-item th:each="change : ${maintenanceScheduleHistory}">
+                    <strong th:text="${#temporals.format(change.nextDueAt, 'dd/MM/yyyy')}">Fecha</strong>
+                    <span th:text="${change.reason + ' · ' + change.recordedBy}">Motivo · Responsable</span>
+                </div>
             </div>
         </details>
+
         <div class="empty-state" th:if="${#lists.isEmpty(maintenanceRecords)}">
             <h3>Sin registros técnicos</h3>
             <p>Este equipo todavía no tiene mantenimientos registrados.</p>
         </div>
-
-        <div class="maintenance-list" th:unless="${#lists.isEmpty(maintenanceRecords)}">
-            <article class="maintenance-item" th:each="record : ${maintenanceRecords}">
+        <div class="maintenance-list" data-history-list data-history-label="Registros técnicos del equipo"
+             th:unless="${#lists.isEmpty(maintenanceRecords)}">
+            <article class="maintenance-item" data-history-item th:each="record : ${maintenanceRecords}">
                 <div class="maintenance-main">
                     <strong th:text="${record.recordType == T(com.assetcontrol.maintenance.domain.ComputerMaintenanceType).MAINTENANCE ? 'Mantenimiento' : record.recordType == T(com.assetcontrol.maintenance.domain.ComputerMaintenanceType).REPAIR ? 'Reparación' : record.recordType == T(com.assetcontrol.maintenance.domain.ComputerMaintenanceType).COMPONENT_REPLACEMENT ? 'Cambio de componente' : 'Nota técnica'}">Mantenimiento</strong>
                     <span th:text="${record.description}">Descripción</span>
@@ -226,7 +238,6 @@
                     </div>
                     <small th:if="${record.checklistNotes != null}" th:text="${record.checklistNotes}"></small>
                 </div>
-
                 <small th:text="${#temporals.format(record.performedAt, 'dd/MM/yyyy')}">Fecha</small>
             </article>
         </div>

@@ -7,5 +7,3 @@
 .accessories-filter { display: grid; grid-template-columns: minmax(0, 1fr) minmax(12rem, .35fr) auto; gap: .8rem; margin: 1.5rem 0; }
 @media (max-width: 760px) { .accessories-stock__grid { grid-template-columns: 1fr 1fr; } .accessories-filter { grid-template-columns: 1fr; } }
 @media (max-width: 510px) { .accessories-stock__grid { grid-template-columns: 1fr; } }
-
-@media (min-width: 1100px) { .person-profile-asset-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }

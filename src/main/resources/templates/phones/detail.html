@@ -30,14 +30,6 @@
                 <svg th:replace="~{fragments/icons :: pencil}"></svg>
             </a>
             <a
-                    class="icon-action"
-                    th:href="@{/phones/{phoneId}/maintenance/new(phoneId=${phone.id})}"
-                    aria-label="Registrar mantenimiento"
-                    data-tooltip="Registrar mantenimiento"
-            >
-                <svg th:replace="~{fragments/icons :: maintenance}"></svg>
-            </a>
-            <a
                     class="icon-action icon-action--primary"
                     th:if="${phone.status != T(com.assetcontrol.phones.domain.PhoneStatus).RETIRED}"
                     th:href="@{/phones/{phoneId}/assignments/new(phoneId=${phone.id})}"
@@ -108,9 +100,10 @@
             <p>Este teléfono todavía no tiene movimientos registrados.</p>
         </div>
 
-        <div class="assignment-list" th:unless="${#lists.isEmpty(assignmentHistory)}">
+        <div class="assignment-list" data-history-list data-history-label="Asignaciones del teléfono" th:unless="${#lists.isEmpty(assignmentHistory)}">
             <article
                     class="assignment-item"
+                    data-history-item
                     th:each="assignment : ${assignmentHistory}"
                     th:classappend="${assignment.returnedAt != null ? ' assignment-item--returned' : ''}"
                     th:id="${'asignacion-' + assignment.id}"
@@ -154,23 +147,30 @@
 
                     <div class="assignment-actions" th:if="${assignment.returnedAt == null}">
                         <button
-                                class="primary-button"
+                                class="icon-action icon-action--primary"
                                 type="button"
                                 data-return-open
+                                aria-label="Devolver teléfono"
+                                data-tooltip="Devolver"
                                 th:attr="data-return-action=@{/phones/{phoneId}/assignments/{assignmentId}/return(phoneId=${phone.id}, assignmentId=${assignment.id})},data-return-asset=${(phone.phoneLine != null ? phone.phoneLine.number : phone.imei) + ' · IMEI ' + phone.imei},data-return-person=${assignment.person.username + ' · ' + assignment.person.fullName}"
-                        >Devolver</button>
+                        ><svg th:replace="~{fragments/icons :: returnAsset}"></svg></button>
                     </div>
                 </div>
             </article>
         </div>
     </section>
 
-    <section class="form-panel maintenance-history">
-        <div class="section-heading">
+    <section class="form-panel maintenance-history" id="mantenimiento">
+        <div class="section-heading maintenance-panel__heading">
             <div>
                 <h2>Mantenimientos e historial técnico</h2>
                 <p>Reparaciones, cambios de componente y notas registradas.</p>
             </div>
+            <a class="icon-action icon-action--primary"
+               th:href="@{/phones/{phoneId}/maintenance/new(phoneId=${phone.id})}"
+               aria-label="Registrar mantenimiento" data-tooltip="Registrar mantenimiento">
+                <svg th:replace="~{fragments/icons :: maintenance}"></svg>
+            </a>
         </div>
 
         <div class="empty-state" th:if="${#lists.isEmpty(maintenanceRecords)}">
@@ -178,8 +178,8 @@
             <p>Este teléfono todavía no tiene mantenimientos registrados.</p>
         </div>
 
-        <div class="maintenance-list" th:unless="${#lists.isEmpty(maintenanceRecords)}">
-            <article class="maintenance-item" th:each="record : ${maintenanceRecords}">
+        <div class="maintenance-list" data-history-list data-history-label="Registros técnicos del teléfono" th:unless="${#lists.isEmpty(maintenanceRecords)}">
+            <article class="maintenance-item" data-history-item th:each="record : ${maintenanceRecords}">
                 <div class="maintenance-main">
                     <strong th:text="${record.recordType == T(com.assetcontrol.phones.maintenance.domain.PhoneMaintenanceType).MAINTENANCE ? 'Mantenimiento' : record.recordType == T(com.assetcontrol.phones.maintenance.domain.PhoneMaintenanceType).REPAIR ? 'Reparación' : record.recordType == T(com.assetcontrol.phones.maintenance.domain.PhoneMaintenanceType).COMPONENT_REPLACEMENT ? 'Cambio de componente' : 'Nota técnica'}">Mantenimiento</strong>
                     <span th:text="${record.description}">Descripción</span>

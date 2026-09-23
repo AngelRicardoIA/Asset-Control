@@ -9,7 +9,10 @@
             <a class="inventory-view-toggle__option" th:classappend="${view == 'STOCK' ? ' inventory-view-toggle__option--active' : ''}" th:href="@{/accessories(view='STOCK',query=${query},type=${type})}">Stock <span th:text="${inventory.stockCount()}">0</span></a>
             <a class="inventory-view-toggle__option" th:classappend="${view == 'ASSIGNED' ? ' inventory-view-toggle__option--active' : ''}" th:href="@{/accessories(view='ASSIGNED',query=${query},type=${type})}">Asignados <span th:text="${inventory.assignedCount()}">0</span></a>
         </nav>
-        <a class="primary-button" th:href="@{/accessories/new}">Nuevo accesorio</a>
+        <a class="icon-action icon-action--primary" th:href="@{/accessories/new}"
+           aria-label="Nuevo accesorio" data-tooltip="Nuevo accesorio">
+            <svg th:replace="~{fragments/icons :: plus}"></svg>
+        </a>
     </div>
     <p class="alert alert--success" th:if="${successMessage}" th:text="${successMessage}"></p>
     <section class="form-panel accessories-stock" th:if="${view == 'STOCK'}" aria-label="Resumen de stock">
@@ -35,10 +38,15 @@
                 </div><span class="status-badge" th:classappend="${item.assigned() ? ' status-assigned' : ' status-available'}" th:text="${item.assigned() ? 'Asignado' : 'Stock'}">Stock</span>
             </a>
         </div>
-        <nav class="maintenance-pagination" aria-label="Páginas" th:if="${totalPages > 1}">
-            <a th:if="${page > 1}" th:href="@{/accessories(view=${view},query=${query},type=${type},page=${page - 1})}">Anterior</a>
-            <a th:each="number : ${pages}" th:href="@{/accessories(view=${view},query=${query},type=${type},page=${number})}" th:text="${number}" th:classappend="${number == page ? ' maintenance-pagination--current' : ''}" th:attr="aria-current=${number == page ? 'page' : null}">1</a>
-            <a th:if="${page < totalPages}" th:href="@{/accessories(view=${view},query=${query},type=${type},page=${page + 1})}">Siguiente</a>
+        <nav class="pagination maintenance-pagination" aria-label="Páginas de accesorios" th:if="${totalPages > 1}">
+            <a class="pagination__link" th:if="${page > 1}"
+               th:href="@{/accessories(view=${view},query=${query},type=${type},page=${page - 1})}">Anterior</a>
+            <a class="pagination__link" th:each="number : ${pages}"
+               th:href="@{/accessories(view=${view},query=${query},type=${type},page=${number})}"
+               th:text="${number}" th:classappend="${number == page ? ' pagination__link--current' : ''}"
+               th:attr="aria-current=${number == page ? 'page' : null}">1</a>
+            <a class="pagination__link" th:if="${page < totalPages}"
+               th:href="@{/accessories(view=${view},query=${query},type=${type},page=${page + 1})}">Siguiente</a>
         </nav>
     </section>
 </main></body></html>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/document-head :: head('Asignar accesorio')}"></head>
+<body>
+<header th:replace="~{fragments/app-header :: header}"></header>
+<main class="page-content narrow-content">
+    <section class="page-heading">
+        <div>
+            <p class="eyebrow">Accesorios</p>
+            <h1>Asignar desde stock</h1>
+            <p th:text="${person.fullName + ' · ' + person.username}">Persona</p>
+        </div>
+        <a class="icon-action" th:href="@{/people/{id}(id=${person.id})}" aria-label="Volver a la persona" data-tooltip="Volver a la persona">
+            <svg th:replace="~{fragments/icons :: arrowLeft}"></svg>
+        </a>
+    </section>
+
+    <form class="filter-panel accessories-filter" method="get" th:action="@{/people/{id}/accessories/assign(id=${person.id})}">
+        <input type="search" name="query" aria-label="Buscar accesorios disponibles" placeholder="Marca, modelo, asset o número de serie" th:value="${query}">
+        <select name="type" aria-label="Tipo de accesorio">
+            <option value="">Todos los tipos</option>
+            <option th:each="option : ${types}" th:value="${option}" th:text="${option.label}" th:selected="${option == type}"></option>
+        </select>
+        <button class="primary-button" type="submit">Buscar</button>
+    </form>
+
+    <form class="form-panel" method="post" th:action="@{/people/{id}/accessories/assign(id=${person.id})}" th:object="${form}">
+        <input type="hidden" name="query" th:value="${query}">
+        <input type="hidden" name="type" th:value="${type}">
+        <p class="alert alert--error" th:each="error : ${#fields.globalErrors()}" th:text="${error}">Error</p>
+        <div class="field-grid">
+            <div class="form-field full-width">
+                <label for="accessoryId">Accesorio disponible</label>
+                <select id="accessoryId" th:field="*{accessoryId}">
+                    <option value="">Selecciona un accesorio</option>
+                    <option th:each="item : ${stock}" th:value="${item.accessory().id}"
+                            th:text="${item.accessory().type.label + ' · ' + item.accessory().brand + ' ' + item.accessory().model + ' · ' + (item.accessory().serialNumber != null ? item.accessory().serialNumber : (item.accessory().asset != null ? item.accessory().asset : 'Unidad #' + item.accessory().id))}"></option>
+                </select>
+                <small class="form-error" th:errors="*{accessoryId}"></small>
+                <small class="field-help" th:if="${stockCount > 50}">Se muestran 50 unidades. Usa la búsqueda para encontrar otra.</small>
+                <small class="field-help" th:if="${stockCount == 0}">No hay accesorios disponibles con estos filtros.</small>
+            </div>
+            <div class="form-field">
+                <label for="assignedAt">Fecha de entrega</label>
+                <input id="assignedAt" type="date" th:field="*{assignedAt}">
+                <small class="form-error" th:errors="*{assignedAt}"></small>
+            </div>
+            <div class="form-field">
+                <label for="assignedBy">Entregado por</label>
+                <input id="assignedBy" type="text" th:field="*{assignedBy}" maxlength="100">
+                <small class="form-error" th:errors="*{assignedBy}"></small>
+            </div>
+        </div>
+        <div class="form-actions">
+            <a class="secondary-button" th:href="@{/people/{id}(id=${person.id})}">Cancelar</a>
+            <button class="primary-button" type="submit" th:disabled="${stockCount == 0}">Asignar accesorio</button>
+        </div>
+    </form>
+</main>
+</body>
+</html>

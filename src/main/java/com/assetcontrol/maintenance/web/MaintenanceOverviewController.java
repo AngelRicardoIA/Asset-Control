@@ -39,9 +39,9 @@ public class MaintenanceOverviewController {
                         + " " + item.computer().getBrand() + " " + item.computer().getModel())
                         .toLowerCase(Locale.ROOT).contains(query.strip().toLowerCase(Locale.ROOT)))
                 .toList();
-        int pages = Math.max(1, (filtered.size() + 19) / 20);
+        int pages = Math.max(1, (filtered.size() + 2) / 3);
         int currentPage = Math.max(1, Math.min(page, pages));
-        model.addAttribute("items", filtered.subList((currentPage - 1) * 20, Math.min(currentPage * 20, filtered.size())));
+        model.addAttribute("items", filtered.subList((currentPage - 1) * 3, Math.min(currentPage * 3, filtered.size())));
         model.addAttribute("currentPage", currentPage);
         model.addAttribute("totalPages", pages);
         model.addAttribute("visiblePages", java.util.stream.IntStream.rangeClosed(Math.max(1, currentPage - 2),
